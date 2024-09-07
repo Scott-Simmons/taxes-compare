@@ -29,9 +29,8 @@ Will be implemented in rust for learning purposes.
     90 day lookback window.
     Need to think about the details here.
     Mabye cacheing for popular currency pairs.
-4) Efficient computation of the effective tax rates. Step size etc. There might be a super fast approach.
+4) Efficient computation of the effective tax rates.
     Essentially how to compute peicewise linear functions effectively.
-    May have to think about precomputed values too.
     May have to think about vectorisation.
     Likely within a "piece" linear interpolation would be the fastest way to compute. Assuming its optimised.
     Should absolutely not be doing a "search per query" just need to do one sweep.
