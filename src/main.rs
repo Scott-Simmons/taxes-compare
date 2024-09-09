@@ -11,6 +11,12 @@ use std::collections::HashMap;
 // income_taxes_list = generate_income_taxes(income_start, income_stop, income_step, income_tax_knots)
 // compute_breakeven_points(segments_f1, segments_f2) -> list of breakeven points
 
+#[derive(Debug)]
+#[derive(PartialEq)]
+enum TaxError {
+    NegativeIncome,
+}
+
 /// A point characterised by a marginal tax rate at a given level of income
 struct MarginalRateKnot {
     /// The marginal tax rate f(x) at given income threshold x
@@ -57,7 +63,10 @@ struct IncomeTaxSchedule {
     schedule: Vec<MarginalRateKnot>,
 }
 impl IncomeTaxSchedule {
-    fn get_tax_amount_from_marginal_rates_knots(&self, income: f32) -> f32 {
+    fn get_tax_amount_from_marginal_rates_knots(&self, income: f32) -> Result<f32, TaxError> {
+        if income < 0.0 {
+        return Err(TaxError::NegativeIncome);
+        }
         let marginal_tax_rates_knots = &self.schedule;
         let mut tax_amount = 0.0;
         for (i, marginal_tax_knot) in marginal_tax_rates_knots.iter().enumerate() {
@@ -74,7 +83,7 @@ impl IncomeTaxSchedule {
             tax_amount +=
                 (marginal_tax_knot.marginal_rate - prev_rate) * (income - prev_limit).max(0.0);
         }
-        tax_amount
+        Ok(tax_amount)
     }
 }
 
@@ -147,7 +156,7 @@ fn get_income_taxes(
 
 #[cfg(test)]
 mod tests {
-    use crate::{IncomeTaxKnot, LinearPiecewiseSegment};
+    use crate::{IncomeTaxKnot, IncomeTaxSchedule, LinearPiecewiseSegment, MarginalRateKnot, TaxError};
 
     #[test]
     fn test_linear_interpolation() {
@@ -169,6 +178,28 @@ mod tests {
 
         let invalid_result_2 = segment.linear_interpolation(3.9);
         assert_eq!(invalid_result_2, None);
+    }
+
+    #[test]
+    fn test_get_tax_amounts_from_marginal_tax_rates_schedule() {
+        // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
+        let schedule = IncomeTaxSchedule {
+            schedule: vec![
+                MarginalRateKnot {marginal_rate: 0.1, income_limit: 10000.0},
+                MarginalRateKnot {marginal_rate: 0.2, income_limit: 20000.0},
+                MarginalRateKnot {marginal_rate: 0.3, income_limit: f32::INFINITY},
+            ]
+        };
+        
+        let result = schedule.get_tax_amount_from_marginal_rates_knots(25000.0);
+        assert_eq!(result.unwrap(), 4500.0);
+
+        let invalid_result = schedule.get_tax_amount_from_marginal_rates_knots(-25000.0);
+        assert_eq!(invalid_result.unwrap_err(), TaxError::NegativeIncome);
+
+        let zero_result = schedule.get_tax_amount_from_marginal_rates_knots(0.0);
+        assert_eq!(zero_result.unwrap(), 0.0);
+
     }
 }
 
