@@ -12,3 +12,8 @@ build:
 run:
 	./target/debug/$(BINARY_NAME)
 
+lint:
+	cargo fmt
+
+test:
+	cargo test
