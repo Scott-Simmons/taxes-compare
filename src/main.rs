@@ -1,3 +1,4 @@
+use log::debug;
 use std::collections::HashMap;
 // list of (r, b)
 // parse this from json for a given country
@@ -33,7 +34,6 @@ struct IncomeTaxPoint {
     /// Level of income x
     income: f32,
 }
-
 
 /// A taxes config represents all information available.
 struct TaxesConfig {
@@ -96,7 +96,12 @@ struct LinearPiecewiseSegment {
 }
 impl LinearPiecewiseSegment {
     fn linear_interpolation(&self, income: f32) -> Option<f32> {
-        if income < self.left_point.income_limit || income > self.right_point.income_limit {
+        debug!("Income: {}", income);
+        println!("Income: {}", income);
+
+        if income < f32::min(self.left_point.income_limit, self.right_point.income_limit)
+            || income > f32::max(self.right_point.income_limit, self.left_point.income_limit)
+        {
             return None;
         }
         Some(
@@ -114,7 +119,6 @@ impl LinearPiecewiseSegment {
         None
     }
 }
-
 
 /// TODO: This might not be needed becuase the curve can be parameterised by the income knots.
 fn compute_income_taxes(
@@ -139,6 +143,33 @@ fn get_income_taxes(
     income_step: f32,
 ) -> Vec<IncomeTaxPoint> {
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{IncomeTaxKnot, LinearPiecewiseSegment};
+
+    #[test]
+    fn test_linear_interpolation() {
+        let segment = LinearPiecewiseSegment {
+            left_point: IncomeTaxKnot {
+                income_limit: 5.0,
+                income_tax_amount: 3.0,
+            },
+            right_point: IncomeTaxKnot {
+                income_limit: 4.0,
+                income_tax_amount: 6.0,
+            },
+        };
+        let valid_result = segment.linear_interpolation(4.5);
+        assert_eq!(valid_result, Some(4.5));
+
+        let invalid_result = segment.linear_interpolation(5.1);
+        assert_eq!(invalid_result, None);
+
+        let invalid_result_2 = segment.linear_interpolation(3.9);
+        assert_eq!(invalid_result_2, None);
+    }
 }
 
 fn main() {
