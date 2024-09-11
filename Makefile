@@ -15,5 +15,6 @@ run:
 lint:
 	cargo fmt
 
+#https://medium.com/@ericdreichert/how-to-print-during-rust-tests-619bdc7ccebc
 test:
-	cargo test
+	cargo test -- --nocapture
