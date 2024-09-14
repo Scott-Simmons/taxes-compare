@@ -8,7 +8,6 @@ use std::{cmp::Ordering, collections::HashMap};
 // search to get segment, then linear interpolation)
 // To efficiently generate a list of income taxes... linear scan, then linear_interpolation
 // income_taxes_list = generate_income_taxes(income_start, income_stop, income_step, income_tax_knots)
-// compute_breakeven_points(segments_f1, segments_f2) -> list of breakeven points
 
 #[derive(Debug, PartialEq)]
 enum TaxError {
@@ -86,7 +85,6 @@ impl IncomeTaxSchedule {
         Ok(tax_amount)
     }
 }
-
 
 fn compute_breakeven_points(
     knots1: Vec<IncomeTaxKnot>,
@@ -214,31 +212,61 @@ impl LinearPiecewiseSegment {
     }
 }
 
-/// TODO: This might not be needed becuase the curve can be parameterised by the income knots.
-/// Will still be needed
-fn compute_income_taxes(
-    income_start: f32,
-    income_stop: f32,
-    income_step: f32,
-    income_tax_knots: Vec<IncomeTaxKnot>,
-) -> Vec<IncomeTaxPoint> {
-    Vec::new()
+/// Given income tax knots, do binary search to find the segment and then interpolate
+fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Option<f32> {
+    // TODO: This doesn't catch all the edge cases but should be good enough for now.
+    if income < 0.0 {
+        return None;
+    }
+    let mut l = 0;
+    let mut r = income_tax_knots.len();
+    while l < r {
+        // Cut down search space
+        let mid = l + (r - l) / 2;
+        if income_tax_knots[mid].income_limit == income {
+            return Some(income_tax_knots[mid].income_tax_amount);
+        } else if income_tax_knots[mid].income_limit < income {
+            if income_tax_knots[l].income_limit <= income
+                && income <= income_tax_knots[l + 1].income_limit
+            {
+                return
+                    LinearPiecewiseSegment {
+                        left_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[l].income_limit,
+                            income_tax_amount: income_tax_knots[l].income_tax_amount,
+                        },
+                        right_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[l + 1].income_limit,
+                            income_tax_amount: income_tax_knots[l + 1].income_tax_amount,
+                        },
+                    }
+                    .linear_interpolation(income);
+            }
+            l = mid;
+        } else {
+            if income_tax_knots[r - 1].income_limit <= income
+                && income <= income_tax_knots[r].income_limit
+            {
+                return 
+                    LinearPiecewiseSegment {
+                        left_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[r - 1].income_limit,
+                            income_tax_amount: income_tax_knots[r - 1].income_tax_amount,
+                        },
+                        right_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[r].income_limit,
+                            income_tax_amount: income_tax_knots[r].income_tax_amount,
+                        },
+                    }
+                    .linear_interpolation(income);
+            }
+            r = mid;
+        }
+    }
+    None
 }
 
 // TODO: Some exchange rate stuff should be handled.
-
-// Main driver functions
-
-// TODO: Sig should change
-fn get_income_taxes(
-    country: String,
-    taxes_config: &TaxesConfig,
-    income_start: f32,
-    income_stop: f32,
-    income_step: f32,
-) -> Vec<IncomeTaxPoint> {
-    Vec::new()
-}
 
 #[cfg(test)]
 mod tests {
@@ -269,6 +297,8 @@ mod tests {
         assert_eq!(invalid_result_2, None);
     }
 
+    // TODO: Tax marginal schedule to knots schedule function.
+
     #[test]
     fn test_get_tax_amounts_from_marginal_tax_rates_schedule() {
         // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
@@ -297,6 +327,45 @@ mod tests {
 
         let zero_result = schedule.get_tax_amount_from_marginal_rates_knots(0.0);
         assert_eq!(zero_result.unwrap(), 0.0);
+    }
+
+
+    #[test]
+    fn test_get_tax_amounts_from_tax_amounts_schedule() {
+        // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
+        use crate::compute_income_tax;
+        let income_tax_knots =  vec![
+            IncomeTaxKnot { // required
+                income_tax_amount: 0.0,
+                income_limit: 0.0,
+            },
+                IncomeTaxKnot {
+                    income_tax_amount: 1000.0,
+                    income_limit: 10000.0,
+                },
+                IncomeTaxKnot {
+                    income_tax_amount: 3000.0,
+                    income_limit: 20000.0,
+                },
+                // An explicit upper bound must be defined in this format.
+                // This is known as the "max income to consider"
+                IncomeTaxKnot {
+                    income_tax_amount: 27000.0,
+                    income_limit: 100000.0,
+                },
+            ];
+
+        let result = compute_income_tax(25000.0, &income_tax_knots);
+        assert_eq!(result, Some(4500.0));
+
+        let result = compute_income_tax(5000.0, &income_tax_knots);
+        assert_eq!(result, Some(500.0));
+
+        let invalid_result = compute_income_tax(-25000.0, &income_tax_knots);
+        assert!(invalid_result.is_none());
+
+        let zero_result = compute_income_tax(0.0, &income_tax_knots);
+        assert_eq!(zero_result, Some(0.0));
     }
 
     #[test]
