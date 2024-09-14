@@ -5,9 +5,7 @@ use std::fs;
 use std::{cmp::Ordering, collections::HashMap};
 
 // list of (r, b)
-// parse this from json for a given country
 // get list of (x, get_tax_amount_from_marginal_rates(b, margina_rates_knots))
-// To efficiently generate a list of income taxes... linear scan, then linear_interpolation
 // income_taxes_list = generate_income_taxes(income_start, income_stop, income_step, income_tax_knots)
 
 #[derive(Debug, PartialEq)]
@@ -25,7 +23,7 @@ struct MarginalRateKnot {
 }
 
 /// A point characterised by tax amount at given income, which is also denoted as a knot point
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 struct IncomeTaxKnot {
     /// Income tax amount f(x) for a given maximimum income level x
     income_tax_amount: f32,
@@ -88,6 +86,34 @@ impl IncomeTaxSchedule {
                 (marginal_tax_knot.marginal_rate - prev_rate) * (income - prev_limit).max(0.0);
         }
         Ok(tax_amount)
+    }
+
+    /// Better representation for efficient computation of taxes
+    fn to_income_amount_schedule(&self, max_income_to_consider: f32) -> Vec<IncomeTaxKnot> {
+        // Needs (0,0)
+        let mut income_tax_knots = vec![IncomeTaxKnot {
+            income_limit: 0.0,
+            income_tax_amount: 0.0,
+        }];
+        for (i, marginal_rate_knot) in self.schedule.iter().enumerate() {
+            print!("This is the marginal rate knot: {:?}\n\n", marginal_rate_knot);
+            if i == self.schedule.len() - 1 || marginal_rate_knot.income_limit > max_income_to_consider {
+                break; // skip the last knot and replace with the max income to consider. Or truncate early.
+            }
+            income_tax_knots.push(IncomeTaxKnot {
+                income_limit: marginal_rate_knot.income_limit,
+                income_tax_amount: self
+                    .get_tax_amount_from_marginal_rates_knots(marginal_rate_knot.income_limit)
+                    .expect("Error"),
+            });
+        }
+        income_tax_knots.push(IncomeTaxKnot {
+            income_limit: max_income_to_consider,
+            income_tax_amount: self
+                .get_tax_amount_from_marginal_rates_knots(max_income_to_consider)
+                .expect("Error"),
+        });
+        income_tax_knots
     }
 }
 
@@ -330,6 +356,49 @@ mod tests {
     }
 
     #[test]
+    fn test_marginal_rates_schedule_to_income_tax_amount_schedule() {
+        let schedule = IncomeTaxSchedule {
+            schedule: vec![
+                MarginalRateKnot {
+                    marginal_rate: 0.1,
+                    income_limit: 10000.0,
+                },
+                MarginalRateKnot {
+                    marginal_rate: 0.2,
+                    income_limit: 20000.0,
+                },
+                MarginalRateKnot {
+                    marginal_rate: 0.3,
+                    income_limit: f32::INFINITY,
+                },
+            ],
+        };
+        
+        let max_income_to_consider = 100000.0;
+        let expected_result = vec![
+            IncomeTaxKnot {
+                income_limit: 0.0,
+                income_tax_amount: 0.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 10000.0,
+                income_tax_amount: 1000.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 20000.0,
+                income_tax_amount: 3000.0,
+            },
+            IncomeTaxKnot {
+                income_limit: max_income_to_consider,
+                income_tax_amount: 27000.0,
+            },
+        ];
+
+        let actual_result = schedule.to_income_amount_schedule(max_income_to_consider);
+        assert_eq!(expected_result, actual_result);
+    }
+
+    #[test]
     fn test_get_tax_amounts_from_marginal_tax_rates_schedule() {
         // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
         let schedule = IncomeTaxSchedule {
@@ -552,8 +621,6 @@ mod tests {
             },
             tolerance
         ));
-
-        print!("{:?}", breakevens)
     }
 }
 
