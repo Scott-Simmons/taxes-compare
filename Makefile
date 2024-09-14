@@ -2,6 +2,7 @@ BINARY_NAME := taxes-redux
 
 DRY_RUN ?= false
 build:
+	cargo update;
 	@if [ $(DRY_RUN) = true ]; then \
 		echo dry run...; \
 		cargo check; \
