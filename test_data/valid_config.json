@@ -1,0 +1,22 @@
+{
+    "country_map": {
+        "New Zealand": {
+            "schedule": [
+                {"marginal_rate": 0.105, "income_limit": 0},
+                {"marginal_rate": 0.175, "income_limit": 14000},
+                {"marginal_rate": 0.3, "income_limit": 48000},
+                {"marginal_rate": 0.33, "income_limit": 70000},
+                {"marginal_rate": 0.39, "income_limit": 180000}
+            ]
+        },
+        "Australia": {
+            "schedule": [
+                {"marginal_rate": 0.0, "income_limit": 0},
+                {"marginal_rate": 0.16, "income_limit": 18200},
+                {"marginal_rate": 0.30, "income_limit": 45000},
+                {"marginal_rate": 0.37, "income_limit": 120000},
+                {"marginal_rate": 0.45, "income_limit": 180000}
+            ]
+        }
+    }
+}

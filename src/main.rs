@@ -1,11 +1,12 @@
-use itertools::Itertools;
 use nalgebra;
+use serde::Deserialize;
+use serde_json;
+use std::fs;
 use std::{cmp::Ordering, collections::HashMap};
+
 // list of (r, b)
 // parse this from json for a given country
 // get list of (x, get_tax_amount_from_marginal_rates(b, margina_rates_knots))
-// to get a single tax amount: get_tax_amount_from_tax_amounts(income, income_tax_knots) (binary
-// search to get segment, then linear interpolation)
 // To efficiently generate a list of income taxes... linear scan, then linear_interpolation
 // income_taxes_list = generate_income_taxes(income_start, income_stop, income_step, income_tax_knots)
 
@@ -15,6 +16,7 @@ enum TaxError {
 }
 
 /// A point characterised by a marginal tax rate at a given level of income
+#[derive(Clone, Debug, Deserialize)]
 struct MarginalRateKnot {
     /// The marginal tax rate f(x) at given income threshold x
     marginal_rate: f32,
@@ -23,7 +25,7 @@ struct MarginalRateKnot {
 }
 
 /// A point characterised by tax amount at given income, which is also denoted as a knot point
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 struct IncomeTaxKnot {
     /// Income tax amount f(x) for a given maximimum income level x
     income_tax_amount: f32,
@@ -41,15 +43,16 @@ struct IncomeTaxPoint {
 }
 
 /// A taxes config represents all information available.
+#[derive(Deserialize, Debug)]
 struct TaxesConfig {
     /// Mapping from country to its tax schedule.
     country_map: HashMap<String, IncomeTaxSchedule>,
 }
 impl TaxesConfig {
     fn new(config_path: &str) -> TaxesConfig {
-        TaxesConfig {
-            country_map: HashMap::new(),
-        }
+        let file = fs::File::open(config_path).expect("File should open read only");
+        let json: TaxesConfig = serde_json::from_reader(file).expect("JSON was not well formatted");
+        return json;
     }
     fn get_country(&self, country: &str) -> Option<&IncomeTaxSchedule> {
         self.country_map.get(country)
@@ -57,11 +60,13 @@ impl TaxesConfig {
 }
 
 /// An income tax table is represented here
+#[derive(Deserialize, Debug)]
 struct IncomeTaxSchedule {
     /// A sorted vector of points where the marginal tax rates change.
     schedule: Vec<MarginalRateKnot>,
 }
 impl IncomeTaxSchedule {
+    /// Dot((r_i - r_{i-1}), max(0, x - b_{i-1}) where (b_0, r_0) = (0,0)
     fn get_tax_amount_from_marginal_rates_knots(&self, income: f32) -> Result<f32, TaxError> {
         if income < 0.0 {
             return Err(TaxError::NegativeIncome);
@@ -102,7 +107,7 @@ fn compute_breakeven_points(
         let l2 = knots2[j].income_limit;
         let r2 = knots2[j + 1].income_limit;
 
-        let segments_have_overlap = r1 >= l1 && r2 >= l1;
+        let segments_have_overlap = r1 >= l2 && r2 >= l1;
 
         if segments_have_overlap {
             let candidate_segment = LinearPiecewiseSegment {
@@ -188,7 +193,7 @@ impl LinearPiecewiseSegment {
         let tol: f32 = 0.00000001;
         match matrix_lhs.rank(tol).cmp(&row_size) {
             Ordering::Less => None,    // linearly dependent - coincident
-            Ordering::Greater => None, // overdetermined, will never happen
+            Ordering::Greater => None, // overdetermined, parallel
             Ordering::Equal => {
                 // solve Ax=b
                 let b_rhs = nalgebra::matrix![q1 - x1; r1 - y1];
@@ -229,36 +234,34 @@ fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Opt
             if income_tax_knots[l].income_limit <= income
                 && income <= income_tax_knots[l + 1].income_limit
             {
-                return
-                    LinearPiecewiseSegment {
-                        left_point: IncomeTaxKnot {
-                            income_limit: income_tax_knots[l].income_limit,
-                            income_tax_amount: income_tax_knots[l].income_tax_amount,
-                        },
-                        right_point: IncomeTaxKnot {
-                            income_limit: income_tax_knots[l + 1].income_limit,
-                            income_tax_amount: income_tax_knots[l + 1].income_tax_amount,
-                        },
-                    }
-                    .linear_interpolation(income);
+                return LinearPiecewiseSegment {
+                    left_point: IncomeTaxKnot {
+                        income_limit: income_tax_knots[l].income_limit,
+                        income_tax_amount: income_tax_knots[l].income_tax_amount,
+                    },
+                    right_point: IncomeTaxKnot {
+                        income_limit: income_tax_knots[l + 1].income_limit,
+                        income_tax_amount: income_tax_knots[l + 1].income_tax_amount,
+                    },
+                }
+                .linear_interpolation(income);
             }
             l = mid;
         } else {
             if income_tax_knots[r - 1].income_limit <= income
                 && income <= income_tax_knots[r].income_limit
             {
-                return 
-                    LinearPiecewiseSegment {
-                        left_point: IncomeTaxKnot {
-                            income_limit: income_tax_knots[r - 1].income_limit,
-                            income_tax_amount: income_tax_knots[r - 1].income_tax_amount,
-                        },
-                        right_point: IncomeTaxKnot {
-                            income_limit: income_tax_knots[r].income_limit,
-                            income_tax_amount: income_tax_knots[r].income_tax_amount,
-                        },
-                    }
-                    .linear_interpolation(income);
+                return LinearPiecewiseSegment {
+                    left_point: IncomeTaxKnot {
+                        income_limit: income_tax_knots[r - 1].income_limit,
+                        income_tax_amount: income_tax_knots[r - 1].income_tax_amount,
+                    },
+                    right_point: IncomeTaxKnot {
+                        income_limit: income_tax_knots[r].income_limit,
+                        income_tax_amount: income_tax_knots[r].income_tax_amount,
+                    },
+                }
+                .linear_interpolation(income);
             }
             r = mid;
         }
@@ -272,8 +275,37 @@ fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Opt
 mod tests {
     use crate::{
         IncomeTaxKnot, IncomeTaxPoint, IncomeTaxSchedule, LinearPiecewiseSegment, MarginalRateKnot,
-        TaxError,
+        TaxError, TaxesConfig,
     };
+
+    #[test]
+    fn test_valid_json_file() {
+        let file_path = "test_data/valid_config.json";
+        let taxes_config = TaxesConfig::new(&file_path);
+
+        assert_eq!(taxes_config.country_map.len(), 2);
+        assert!(taxes_config.country_map.contains_key("New Zealand"));
+        assert!(taxes_config.country_map.contains_key("Australia"));
+
+        assert_eq!(
+            taxes_config
+                .country_map
+                .get("New Zealand")
+                .unwrap()
+                .schedule
+                .len(),
+            5
+        );
+        assert_eq!(
+            taxes_config
+                .country_map
+                .get("Australia")
+                .unwrap()
+                .schedule
+                .len(),
+            5
+        );
+    }
 
     #[test]
     fn test_linear_interpolation() {
@@ -296,8 +328,6 @@ mod tests {
         let invalid_result_2 = segment.linear_interpolation(3.9);
         assert_eq!(invalid_result_2, None);
     }
-
-    // TODO: Tax marginal schedule to knots schedule function.
 
     #[test]
     fn test_get_tax_amounts_from_marginal_tax_rates_schedule() {
@@ -329,31 +359,31 @@ mod tests {
         assert_eq!(zero_result.unwrap(), 0.0);
     }
 
-
     #[test]
     fn test_get_tax_amounts_from_tax_amounts_schedule() {
         // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
         use crate::compute_income_tax;
-        let income_tax_knots =  vec![
-            IncomeTaxKnot { // required
+        let income_tax_knots = vec![
+            IncomeTaxKnot {
+                // required lower bound must be injected in the conversion.
                 income_tax_amount: 0.0,
                 income_limit: 0.0,
             },
-                IncomeTaxKnot {
-                    income_tax_amount: 1000.0,
-                    income_limit: 10000.0,
-                },
-                IncomeTaxKnot {
-                    income_tax_amount: 3000.0,
-                    income_limit: 20000.0,
-                },
-                // An explicit upper bound must be defined in this format.
-                // This is known as the "max income to consider"
-                IncomeTaxKnot {
-                    income_tax_amount: 27000.0,
-                    income_limit: 100000.0,
-                },
-            ];
+            IncomeTaxKnot {
+                income_tax_amount: 1000.0,
+                income_limit: 10000.0,
+            },
+            IncomeTaxKnot {
+                income_tax_amount: 3000.0,
+                income_limit: 20000.0,
+            },
+            // An explicit upper bound must be defined in this format.
+            // This is known as the "max income to consider"
+            IncomeTaxKnot {
+                income_tax_amount: 27000.0,
+                income_limit: 100000.0,
+            },
+        ];
 
         let result = compute_income_tax(25000.0, &income_tax_knots);
         assert_eq!(result, Some(4500.0));
