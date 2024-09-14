@@ -20,8 +20,6 @@ Backend Needs:
 
 Will be implemented in rust for learning purposes.
 
-1) Static data holding the tax rates.
-2) Pre-computed tax values for each level of income? Maybe...
 3) Exchange rates normalisation. Most recent value, mean, stdev. This should be a time series.
     Exchange rate API.
     Fetch historical...
@@ -110,3 +108,8 @@ https://math.stackexchange.com/questions/3488993/intersection-of-2-piecewise-lin
 
 The approach: Two pointers to only process overlapping segments. Finding intersection by setting up two systems of linear equations.
 
+
+
+Income Tax as a function of income is f(fixed_params, exchange_rate). 95% confint [f_lower, f_upper]. But since exchange rate is linear then can pull out: [exchange_rate_lower*f(params), exchange_rate_upper*f(params)]
+
+https://publicapis.dev/category/currency-exchange

@@ -1,16 +1,31 @@
 use nalgebra;
+use rayon::prelude::*;
 use serde::Deserialize;
 use serde_json;
 use std::fs;
 use std::{cmp::Ordering, collections::HashMap};
 
-// list of (r, b)
-// get list of (x, get_tax_amount_from_marginal_rates(b, margina_rates_knots))
-// income_taxes_list = generate_income_taxes(income_start, income_stop, income_step, income_tax_knots)
+// Start, stop step income taxes method... IMPORTANT
+
+// Higher level stuff
+
+// Rest API calls etc. Efficient processing for each country etc...
+// Request will come in with (1) Countries list<string>, (2) Income float, (3) Do breakeven points t/f, (4) max_income float, (5) Exchange rate.
+// Dispatch off to the things efficiently...
+
+// TODO:
+// 1. Compute all breakeven points in two piecewise curves (considering overlapping segments)
+// 2. Parse a json config file representing a tax scheule
+// 3. Go from marginal rate s to actual taxes (parse knots)
+// 4. Go from actual taxes to tax rates (f(x)/x)
+// 5. Apply exchange rate E*f(x)/x
+// 5. Function to get income at any level
+// 6. Function to sample at various points (need this for f(x)/x)
 
 #[derive(Debug, PartialEq)]
 enum TaxError {
     NegativeIncome,
+    IncomeOutOfBounds,
 }
 
 /// A point characterised by a marginal tax rate at a given level of income
@@ -96,8 +111,9 @@ impl IncomeTaxSchedule {
             income_tax_amount: 0.0,
         }];
         for (i, marginal_rate_knot) in self.schedule.iter().enumerate() {
-            print!("This is the marginal rate knot: {:?}\n\n", marginal_rate_knot);
-            if i == self.schedule.len() - 1 || marginal_rate_knot.income_limit > max_income_to_consider {
+            if i == self.schedule.len() - 1
+                || marginal_rate_knot.income_limit > max_income_to_consider
+            {
                 break; // skip the last knot and replace with the max income to consider. Or truncate early.
             }
             income_tax_knots.push(IncomeTaxKnot {
@@ -162,8 +178,76 @@ fn compute_breakeven_points(
     breakeven_points
 }
 
+fn group_incomes_by_segment(
+    incomes: &[f32],
+    knot_points: &[IncomeTaxKnot],
+) -> Vec<(LinearPiecewiseSegment, Vec<f32>)> {
+    // Small bit of inefficiency with segments representation as it doubles up e.g. r1 == l2
+    // But this should not matter since number of knot points is usually low.
+    // Using LinearPiecewiseSegment makes things more readable too.
+    // This can be improved by avoiding cloning.
+    let mut point_index = 0;
+    let mut incomes_in_segment = Vec::new();
+    let mut overall_result = Vec::new();
+    let mut income_index = 0;
+    while income_index < incomes.len() {
+        let income = incomes[income_index];
+        if point_index + 1 >= knot_points.len() {
+            break;
+        }
+        // Assumes sorted incomes and sorted knot points.
+        if income <= knot_points[point_index + 1].income_limit {
+            incomes_in_segment.push(income);
+            income_index += 1;
+        } else {
+            overall_result.push((
+                LinearPiecewiseSegment {
+                    left_point: knot_points[point_index].clone(),
+                    right_point: knot_points[point_index + 1].clone(),
+                },
+                incomes_in_segment.clone(),
+            ));
+            incomes_in_segment.clear();
+            point_index += 1;
+        }
+    }
+
+    // Handle the final segment (wont be flushed otherwise...)
+    if !incomes_in_segment.is_empty() && point_index < knot_points.len() - 1 {
+        overall_result.push((
+            LinearPiecewiseSegment {
+                left_point: knot_points[point_index].clone(),
+                right_point: knot_points[point_index + 1].clone(),
+            },
+            incomes_in_segment,
+        ));
+    }
+
+    overall_result
+}
+
+// Efficiently interpolate segments for a range of incomes
+fn interpolate_segments_parallel(
+    incomes: &[f32],
+    income_tax_knot_points: &[IncomeTaxKnot],
+) -> Result<Vec<f32>, TaxError> {
+    if incomes.last().unwrap() > &income_tax_knot_points.last().unwrap().income_limit {
+        return Err(TaxError::IncomeOutOfBounds);
+    }
+    // Choose not to parallelise the segments because the number of segments are usually low.
+    let grouped_income_values = group_incomes_by_segment(&incomes, &income_tax_knot_points);
+    Ok(grouped_income_values
+        .par_iter()
+        .flat_map(|(segment, income_group)| {
+            income_group
+                .par_iter()
+                .map(|&income| segment.linear_interpolation(income).unwrap())
+        })
+        .collect())
+}
+
 /// A line segment characterised by two points
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct LinearPiecewiseSegment {
     /// Two knot points characterise a segment of a linear piecewise function
     /// https://en.wikipedia.org/wiki/Line_segment
@@ -300,8 +384,8 @@ fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Opt
 #[cfg(test)]
 mod tests {
     use crate::{
-        IncomeTaxKnot, IncomeTaxPoint, IncomeTaxSchedule, LinearPiecewiseSegment, MarginalRateKnot,
-        TaxError, TaxesConfig,
+        group_incomes_by_segment, interpolate_segments_parallel, IncomeTaxKnot, IncomeTaxPoint,
+        IncomeTaxSchedule, LinearPiecewiseSegment, MarginalRateKnot, TaxError, TaxesConfig,
     };
 
     #[test]
@@ -331,6 +415,112 @@ mod tests {
                 .len(),
             5
         );
+    }
+
+    #[test]
+    fn test_parallel_interpolate() {
+        let incomes = vec![500.0, 1500.0, 1700.0, 2500.0];
+        // not upper bounded.
+        let knot_points = vec![
+            IncomeTaxKnot {
+                // always need a (0,0) for it to work.
+                income_limit: 0.0,
+                income_tax_amount: 0.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 1000.0,
+                income_tax_amount: 0.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 2000.0,
+                income_tax_amount: 1.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 3000.0,
+                income_tax_amount: 3.0,
+            },
+        ];
+        let actual_result = interpolate_segments_parallel(&incomes, &knot_points);
+        let expected_result = vec![
+            0.0, 0.5, 0.7, // y = (1/1000)*(x - 2000) + 1
+            2.0,
+        ];
+        assert_eq!(actual_result, Ok(expected_result));
+
+        // it should throw error because income is out of bounds w.r.t. the tax schedule
+        let invalid_incomes = vec![500.0, 1500.0, 1700.0, 2500.0, 3500.0];
+        let invalid_result = interpolate_segments_parallel(&invalid_incomes, &knot_points);
+        assert_eq!(invalid_result.unwrap_err(), TaxError::IncomeOutOfBounds);
+    }
+
+    #[test]
+    fn test_group_incomes_by_segment() {
+        let incomes = vec![500.0, 1500.0, 1700.0, 2500.0, 3500.0];
+        // is not upper bounded.
+        let knot_points = vec![
+            IncomeTaxKnot {
+                // always need a (0,0) for it to work.
+                income_limit: 0.0,
+                income_tax_amount: 0.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 1000.0,
+                income_tax_amount: 0.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 2000.0,
+                income_tax_amount: 1.0,
+            },
+            IncomeTaxKnot {
+                income_limit: 3000.0,
+                income_tax_amount: 3.0,
+            },
+        ];
+
+        let expected_result = vec![
+            (
+                LinearPiecewiseSegment {
+                    left_point: IncomeTaxKnot {
+                        income_limit: 0.0,
+                        income_tax_amount: 0.0,
+                    },
+                    right_point: IncomeTaxKnot {
+                        income_limit: 1000.0,
+                        income_tax_amount: 0.0,
+                    },
+                },
+                vec![500.0],
+            ),
+            (
+                LinearPiecewiseSegment {
+                    left_point: IncomeTaxKnot {
+                        income_limit: 1000.0,
+                        income_tax_amount: 0.0,
+                    },
+                    right_point: IncomeTaxKnot {
+                        income_limit: 2000.0,
+                        income_tax_amount: 1.0,
+                    },
+                },
+                vec![1500.0, 1700.0],
+            ),
+            (
+                LinearPiecewiseSegment {
+                    left_point: IncomeTaxKnot {
+                        income_limit: 2000.0,
+                        income_tax_amount: 1.0,
+                    },
+                    right_point: IncomeTaxKnot {
+                        income_limit: 3000.0,
+                        income_tax_amount: 3.0,
+                    },
+                },
+                vec![2500.0],
+            ),
+        ];
+
+        let actual_result = group_incomes_by_segment(&incomes, &knot_points);
+        assert_eq!(expected_result, actual_result);
     }
 
     #[test]
@@ -373,7 +563,7 @@ mod tests {
                 },
             ],
         };
-        
+
         let max_income_to_consider = 100000.0;
         let expected_result = vec![
             IncomeTaxKnot {
@@ -547,6 +737,8 @@ mod tests {
         };
         let result = parallel_segment.compute_intersection(&test_segment);
         assert!(result.is_none());
+
+        // Need to also test process segments that doesn't line up in x
     }
 
     fn income_points_are_approx_eq(
@@ -564,7 +756,6 @@ mod tests {
     #[test]
     fn test_get_breakeven_points() {
         use crate::compute_breakeven_points;
-        use assert_approx_eq::assert_approx_eq;
 
         // https://www.desmos.com/calculator
         // Breakevens at (25/3, 20/3) and (50/3, 40/3)
