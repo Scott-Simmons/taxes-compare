@@ -1,5 +1,6 @@
 BINARY_NAME := taxes-redux
 
+
 DRY_RUN ?= false
 build:
 	cargo update;
@@ -11,7 +12,7 @@ build:
 	fi
 
 #BACKTRACE_CMD ?= RUST_BACKTRACE=full
-BACKTRACE_CMD ?= 
+BACKTRACE_CMD ?= RUST_LOG=DEBUG
 run:
 	$(BACKTRACE_CMD) ./target/debug/$(BINARY_NAME)
 
