@@ -164,7 +164,7 @@ fn process_country_breakeven_points(
 }
 
 fn process_request(req: &TaxRequest, taxes_config: &TaxesConfig) -> Result<TaxResponse, String> {
-    let step = 1.0;
+    let step = 10.0; // TODO: Play around with this param
     let min_income = 0.0;
     let incomes_to_compute = generate_range(min_income, req.max_income, step);
 
