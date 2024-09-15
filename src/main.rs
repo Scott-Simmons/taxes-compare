@@ -5,10 +5,6 @@ use serde_json;
 use std::fs;
 use std::{cmp::Ordering, collections::HashMap};
 
-// Start, stop step income taxes method... IMPORTANT
-
-// Higher level stuff
-
 // Rest API calls etc. Efficient processing for each country etc...
 // Request will come in with (1) Countries list<string>, (2) Income float, (3) Do breakeven points t/f, (4) max_income float, (5) Exchange rate.
 // Dispatch off to the things efficiently...
@@ -327,6 +323,47 @@ impl LinearPiecewiseSegment {
     }
 }
 
+/// Utility function for generating a range of income points to interpolate.
+fn generate_range(start: f32, stop: f32, step: f32) -> Vec<f32> {
+    let mut values = Vec::new();
+    let mut current = start;
+
+    while current <= stop {
+        values.push(current);
+        current += step;
+    }
+    values
+}
+
+/// Compute income tax amounts for a range of incomes
+fn compute_income_taxes_efficiently(
+    income_start: f32,
+    income_stop: f32,
+    income_step: f32,
+    income_tax_knot_points: &[IncomeTaxKnot],
+) -> Result<Vec<f32>, TaxError> {
+    // Not tested yet
+    let incomes_to_compute = generate_range(income_start, income_stop, income_step);
+    interpolate_segments_parallel(&incomes_to_compute, &income_tax_knot_points)
+}
+
+fn compute_effective_tax_rates(
+    incomes: &[f32],
+    income_tax_amounts: &[f32] 
+) -> Vec<f32> {
+    // Consider par_iter() vs iter(). Depends on the step size where mc = mr. (thread management
+    // overhead cost is a potential concern)
+    incomes.par_iter().zip(income_tax_amounts.par_iter())
+        .map(|(&income, &income_amount)| {
+            if income == 0.0 {
+                0.0 // avoid div by zero error
+            } else {
+                income_amount / income
+            }
+        }) 
+        .collect()
+}
+
 /// Given income tax knots, do binary search to find the segment and then interpolate
 fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Option<f32> {
     // TODO: This doesn't catch all the edge cases but should be good enough for now.
@@ -340,7 +377,8 @@ fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Opt
         let mid = l + (r - l) / 2;
         if income_tax_knots[mid].income_limit == income {
             return Some(income_tax_knots[mid].income_tax_amount);
-        } else if income_tax_knots[mid].income_limit < income {
+        }
+        if income_tax_knots[mid].income_limit < income {
             if income_tax_knots[l].income_limit <= income
                 && income <= income_tax_knots[l + 1].income_limit
             {
