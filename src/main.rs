@@ -150,6 +150,8 @@ fn process_country_breakeven_points(
     );
     let (breakeven_incomes, breakeven_amounts): (Vec<f32>, Vec<f32>) = breakevens
         .iter()
+        // The origin is not interesting filter it out
+        .filter(|point| !(point.income == 0.0 && point.income_tax_amount == 0.0))
         .map(|point| (point.income, point.income_tax_amount))
         .unzip();
 
