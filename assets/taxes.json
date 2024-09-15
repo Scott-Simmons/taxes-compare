@@ -1,81 +1,106 @@
 {
-    "New Zealand": [
-        [0.105, 0, 14000],
-        [0.175, 14000, 48000],
-        [0.3, 48000, 70000],
-        [0.33, 70000, 180000],
-        [0.39, 180000, null]
-    ],
-    "Australia": [
-        [0.0, 0, 18200],
-        [0.16, 18200, 45000],
-        [0.30, 45000, 120000],
-        [0.37, 120000, 180000],
-        [0.45, 180000, null]
-    ],
-    "United Kingdom": [
-        [0.00, 0, 12570],
-        [0.20, 12570, 50270],
-        [0.4, 50270, 125140],
-        [0.45, 125140, null]
-    ],
-    "Singapore": [
-        [0, 0, 20000],
-        [0.02, 20000, 30000],
-        [0.035, 30000, 40000],
-        [0.07, 40000, 80000],
-        [0.115, 80000, 120000],
-        [0.15, 120000, 160000],
-        [0.18, 160000, 200000],
-        [0.19, 200000, 240000],
-        [0.195, 240000, 280000],
-        [0.20, 280000, 320000],
-        [0.22, 320000, 500000],
-        [0.23, 500000, 1e6],
-        [0.24, 1e6, null]
-    ],
-    "Norway": [
-        [0.22, 0, null]
-    ],
-    "South Africa": [
-        [0.18, 0, 237100],
-        [0.26, 237100, 370500],
-        [0.31, 370500, 512800],
-        [0.36, 512800, 673000],
-        [0.39, 673000, 857900],
-        [0.41, 857900, 1817000],
-        [0.45, 1817000, null]
-    ],
-    "Netherlands": [
-        [0.0932, 0, 38098],
-        [0.3697, 38098, 75518],
-        [0.495, 75518, null]
-    ],
-    "Ireland": [
-        [0.2, 0, 40000],
-        [0.4, 40000, null]
-    ],
-    "Spain": [
-        [0.19, 0, 6000],
-        [0.21, 6000, 50000],
-        [0.23, 50000, 200000],
-        [0.27, 200000, 300000],
-        [0.28, 300000, null]
-    ],
-    "United States of America (excl. state taxes)": [
-        [0.10, 0, 11000],
-        [0.12, 11000, 44725],
-        [0.22, 44725, 95375],
-        [0.24, 95375, 182100],
-        [0.32, 182100, 231250],
-        [0.35, 231250, 578125],
-        [0.37, 578125, null]
-    ],
-    "Canada (excl. provincial taxes)": [
-        [0.15, 0, 53359],
-        [0.205, 53359, 106717],
-        [0.26, 106717, 165430],
-        [0.29, 165430, 235675],
-        [0.33, 235675, null]
-    ] 
+    "country_map": {
+        "New Zealand": {
+            "schedule": [
+                {"marginal_rate": 0.105, "income_limit": 14000},
+                {"marginal_rate": 0.175, "income_limit": 48000},
+                {"marginal_rate": 0.3, "income_limit": 70000},
+                {"marginal_rate": 0.33, "income_limit": 180000},
+                {"marginal_rate": 0.39, "income_limit": null}
+            ]
+        },
+        "Australia": {
+            "schedule": [
+                {"marginal_rate": 0.0, "income_limit": 18200},
+                {"marginal_rate": 0.16, "income_limit": 45000},
+                {"marginal_rate": 0.30, "income_limit": 120000},
+                {"marginal_rate": 0.37, "income_limit": 180000},
+                {"marginal_rate": 0.45, "income_limit": null}
+            ]
+        },
+        "United Kingdom": {
+            "schedule" : [
+                {"marginal_rate": 0.0,  "income_limit": 12570},
+                {"marginal_rate": 0.20, "income_limit": 50270},
+                {"marginal_rate": 0.40, "income_limit": 125140},
+                {"marginal_rate": 0.45, "income_limit": null}
+            ]
+        },
+        "Singapore": {
+            "schedule" : [
+                {"marginal_rate": 0.0,  "income_limit": 20000},
+                {"marginal_rate": 0.02, "income_limit": 30000},
+                {"marginal_rate": 0.035, "income_limit": 40000},
+                {"marginal_rate": 0.07, "income_limit": 80000},
+                {"marginal_rate": 0.115, "income_limit": 120000},
+                {"marginal_rate": 0.15, "income_limit": 160000},
+                {"marginal_rate": 0.18, "income_limit": 200000},
+                {"marginal_rate": 0.19, "income_limit": 240000},
+                {"marginal_rate": 0.195, "income_limit": 280000},
+                {"marginal_rate": 0.20, "income_limit": 320000},
+                {"marginal_rate": 0.22, "income_limit": 500000},
+                {"marginal_rate": 0.23, "income_limit": 1e6},
+                {"marginal_rate": 0.24, "income_limit": null}
+            ]
+        },
+        "Norway": {
+            "schedule" : [
+                {"marginal_rate": 0.22,  "income_limit": null}
+            ]
+        },
+        "South Africa": {
+            "schedule" : [
+                {"marginal_rate": 0.18,  "income_limit": 237100},
+                {"marginal_rate": 0.26, "income_limit": 370500},
+                {"marginal_rate": 0.31, "income_limit": 512800},
+                {"marginal_rate": 0.36, "income_limit": 673000},
+                {"marginal_rate": 0.39, "income_limit": 857900},
+                {"marginal_rate": 0.41, "income_limit": 1817000},
+                {"marginal_rate": 0.45, "income_limit": null}
+            ]
+        },
+        "Netherlands": {
+            "schedule" : [
+                {"marginal_rate": 0.0932,  "income_limit": 38098},
+                {"marginal_rate": 0.3697, "income_limit": 75518},
+                {"marginal_rate": 0.495, "income_limit": null}
+            ]
+        },
+        "Ireland": {
+            "schedule" : [
+                {"marginal_rate": 0.2,  "income_limit": 40000},
+                {"marginal_rate": 0.4, "income_limit": null}
+            ]
+        },
+        "Spain": {
+            "schedule" : [
+                {"marginal_rate": 0.19,  "income_limit": 6000},
+                {"marginal_rate": 0.21, "income_limit": 50000},
+                {"marginal_rate": 0.23, "income_limit": 200000},
+                {"marginal_rate": 0.27, "income_limit": 300000},
+                {"marginal_rate": 0.28, "income_limit": null}
+            ]
+        },
+        "United States of America (excl. state taxes)": {
+            "schedule" : [
+                {"marginal_rate": 0.1,  "income_limit": 11000},
+                {"marginal_rate": 0.12, "income_limit": 44725},
+                {"marginal_rate": 0.22, "income_limit": 95375},
+                {"marginal_rate": 0.24, "income_limit": 182100},
+                {"marginal_rate": 0.32, "income_limit": 231250},
+                {"marginal_rate": 0.35, "income_limit": 578125},
+                {"marginal_rate": 0.37, "income_limit": null}
+            ]
+        },
+        "Canada (excl. provincial taxes)": {
+            "schedule" : [
+                {"marginal_rate": 0.15,  "income_limit": 53359},
+                {"marginal_rate": 0.205,  "income_limit": 106717},
+                {"marginal_rate": 0.26,  "income_limit": 165430},
+                {"marginal_rate": 0.29,  "income_limit": 235675},
+                {"marginal_rate": 0.33,  "income_limit": null}
+            ]
+        }
+    }
 }
+
