@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct TaxRequest {
     pub countries: Vec<String>,
     pub income: f32,

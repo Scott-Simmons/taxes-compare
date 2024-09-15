@@ -21,7 +21,86 @@ Backend Needs:
 Will be implemented in rust for learning purposes.
 
 
-Requests will hit the backend with:
+```bash
+curl -X POST http://127.0.0.1:8080/process \
+     -H "Content-Type: application/json" \
+     -d '{"countries":["New Zealand","Australia"],"income":50000.0,"max_income":200000.0,"show_break_even":true,"normalizing_currency":"NZD"}'
+```
+
+Example request
+```json
+{
+  "countries": ["New Zealand", "Australia"],
+  "income": 50000.0,
+  "max_income": 200000.0,
+  "show_break_even": true,
+  "normalizing_currency": "NZD"
+}
+```
+
+Example response
+
+```json
+{
+    "country_specific_data": {
+        "Australia": {
+            "Incomes": [
+                1,
+                2,
+                ...
+            ],
+            "tax_amounts": [
+                0,
+                0,
+                ...
+            ],
+            "effective_tax_rates": [
+                0,
+                0,
+                ...
+            ],
+            "specific_tax_amount": 0,
+            "specific_tax_rate": 0
+        },
+        "New Zealand": {
+            "Incomes": [
+                1,
+                2,
+                ...
+            ],
+            "tax_amounts": [
+                0,
+                0,
+                ...
+            ],
+            "effective_tax_rates": [
+                0,
+                0,
+                ...
+            ],
+            "specific_tax_amount": 0,
+            "specific_tax_rate": 0
+        },
+    },
+    "country_comb_data": {
+        "New Zealand-Australia": {
+            "breakeven_incomes": [
+                0,
+                ...
+            ],
+            "breakeven_tax_amounts": [
+                0,
+                0
+            ],
+            "breakeven_effective_tax_rates": [
+                0,
+                ...
+            ]
+        }
+    }
+}
+
+```
 
 
 1) A list of countries (do "x" for all countries)

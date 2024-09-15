@@ -1,4 +1,6 @@
 mod errors;
+use log::info;
+use env_logger;
 use serde::Deserializer;
 mod models;
 mod utils;
@@ -87,8 +89,12 @@ async fn handle_request(
     req: web::Json<TaxRequest>,
     config: web::Data<TaxesConfig>,
 ) -> impl Responder {
+    info!("Received request: {:?}", req);
     match process_request(&req.into_inner(), &config) {
-        Ok(response) => HttpResponse::Ok().json(response),
+        Ok(response) => {
+            info!("Processed request successfully");
+            HttpResponse::Ok().json(response)
+        },
         Err(e) => {
             eprint!("Error processing request: {:?}", e);
             HttpResponse::InternalServerError().finish()
@@ -222,6 +228,7 @@ mod tests {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
     let taxes_config = TaxesConfig::new("./assets/taxes.json");
 
     HttpServer::new(move || {
