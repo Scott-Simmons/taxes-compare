@@ -10,8 +10,10 @@ build:
 		cargo build; \
 	fi
 
+#BACKTRACE_CMD ?= RUST_BACKTRACE=full
+BACKTRACE_CMD ?= 
 run:
-	./target/debug/$(BINARY_NAME)
+	$(BACKTRACE_CMD) ./target/debug/$(BINARY_NAME)
 
 lint:
 	cargo fmt
