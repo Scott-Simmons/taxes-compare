@@ -1,28 +1,27 @@
-
+use crate::models::tax_schedule::IncomeTaxSchedule;
+use crate::Deserialize;
+use std::collections::HashMap;
+use std::fs;
 /// A taxes config represents all information available.
-#[derive(Deserialize, Debug)]
-struct TaxesConfig {
+#[derive(Deserialize, Debug, Clone)]
+pub struct TaxesConfig {
     /// Mapping from country to its tax schedule.
-    country_map: HashMap<String, IncomeTaxSchedule>,
+    pub country_map: HashMap<String, IncomeTaxSchedule>,
 }
 impl TaxesConfig {
-    fn new(config_path: &str) -> TaxesConfig {
+    pub fn new(config_path: &str) -> TaxesConfig {
         let file = fs::File::open(config_path).expect("File should open read only");
         let json: TaxesConfig = serde_json::from_reader(file).expect("JSON was not well formatted");
-        return json;
+        json
     }
-    fn get_country(&self, country: &str) -> Option<&IncomeTaxSchedule> {
+    pub fn get_country(&self, country: &str) -> Option<&IncomeTaxSchedule> {
         self.country_map.get(country)
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{
-        group_incomes_by_segment, interpolate_segments_parallel, IncomeTaxKnot, IncomeTaxPoint,
-        IncomeTaxSchedule, LinearPiecewiseSegment, MarginalRateKnot, TaxError, TaxesConfig,
-    };
+    use crate::models::taxes_config::TaxesConfig;
     #[test]
     fn test_taxes_config() {
         let file_path = "test_data/valid_config.json";
