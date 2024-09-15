@@ -347,12 +347,13 @@ fn compute_income_taxes_efficiently(
     interpolate_segments_parallel(&incomes_to_compute, &income_tax_knot_points)
 }
 
+/// Given the tax amounts and the incomes, compute the effective tax rate at each income step.
 fn compute_effective_tax_rates(
     incomes: &[f32],
     income_tax_amounts: &[f32] 
 ) -> Vec<f32> {
     // Consider par_iter() vs iter(). Depends on the step size where mc = mr. (thread management
-    // overhead cost is a potential concern)
+    // overhead cost is a consideration)
     incomes.par_iter().zip(income_tax_amounts.par_iter())
         .map(|(&income, &income_amount)| {
             if income == 0.0 {
@@ -363,6 +364,17 @@ fn compute_effective_tax_rates(
         }) 
         .collect()
 }
+
+
+/// Currency conversion. Exchange rate is in units of local per foriegn.
+fn exchange_rate_adjustment(
+    values: &[f32],
+    exchange_rate: f32, 
+) -> Vec<f32> {
+    values.par_iter().map(|&value| value * exchange_rate).collect()
+}
+
+
 
 /// Given income tax knots, do binary search to find the segment and then interpolate
 fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Option<f32> {
