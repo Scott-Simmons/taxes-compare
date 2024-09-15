@@ -20,32 +20,27 @@ Backend Needs:
 
 Will be implemented in rust for learning purposes.
 
-3) Exchange rates normalisation. Most recent value, mean, stdev. This should be a time series.
-    Exchange rate API.
-    Fetch historical...
-    Persist to a DB.
-    90 day lookback window.
-    Need to think about the details here.
-    Mabye cacheing for popular currency pairs.
-4) Efficient computation of the effective tax rates.
-    Essentially how to compute peicewise linear functions effectively.
-    May have to think about vectorisation.
-    Likely within a "piece" linear interpolation would be the fastest way to compute. Assuming its optimised.
-    Should absolutely not be doing a "search per query" just need to do one sweep.
 
-5) Need to think carefully about (Marginal tax rate as a function of income... peicewise linear). Effective tax amount as a function of income (peicewise linear). Effective tax rate as a fucntion of income (not peicewise linear).
-
-I think it should plot: Marginal tax rate as a function of income, tax as a function of income, effective tax rate as a function of income.
+Requests will hit the backend with:
 
 
+1) A list of countries (do "x" for all countries)
+2) A specific income value (compute_income_tax for a specific income, doing for all countries)
+3) A max income to consider (upper bound for the efficient interpolation, doing for all countries)
+4) A bool saying to show breakeven points or not (if true then take all pairwise combs of countries)
+5) The normalising currency e.g. NZD, AUD, or "local" where local means no normalisation, adjustment for all countries.
+
+The response will need to have:
+
+1) Breakeven point mapping str --> list[point] {country_comb: [breakeven_1, breakeven_2, ...]}
+2) Specific Income mapping str --> point {country: point} (need to be separate for precision guarentees not relying on interpolation).
+3) Marginal Rates curve str --> (list[x], list[y]) (adjusted by exchange rates)
+4) Tax amounts curve str --> (list[x], list[y]) (adjusted by exchange rates)
 
 
+TODO: A cool idea is to treat exchange rate as an r.v. Exchange rate is a linear transform, so can efficiently sample to get curves with upper and lower confidence bands. This would become more complex (lookback windows, persistence etc) and therefore can be part of V3.
 
-
-
-Some thinking:
-
-We start with data that characterises the marginal tax rates as a function of income, e.g:
+We start with data that characterises the marginal tax rates as a function of income because this is easy to maintain.
 
 ```python
 import matplotlib.pyplot as plt
@@ -82,34 +77,21 @@ $$ f(x ; \mu ) = \sum_{i=1}^{n}(r_i - r_{i - 1})max(0, x - b_{i - 1}$$
 
 Which can be used to efficiently computed $n$ new knot points $(x_i, y_i) = (x_i, f(b_i; \mu)$ that represent the knot points of the peicewise linear funcion that defines the tax amount.
 
-But note that the last one will be an unbounded point that needs special handling.
+But note that the last one will be an unbounded point that needs special handling. A max income to consider must be provided.
 
-For the set of knots, this can be sorted. It parameterises the function given we know it is linear.
+For the set of knots, this will be sorted. It parameterises the function given we know it is linear.
 
 To get an individual value, need to find the segment that it lies in, and then perform linear interpolation between it.
 
 For efficient traversal for a large number of income values, function shoud do a linear scan of each of the discretised points. So that is doesn't have to search for which segment to interpolate each time.
 
-Should also implement a version that does not traverse, but does a binary search on the segments to find the right segment to interpolate with.
-
-The step size will be a big factor. Do not want it to be too big nor too small.
-
-Applying exchange rates will be a simple linear scaling of this. But the complication is that I want a distribution of curves. For example, applying current exchange rate, 90 day average exchange rate, and lastly I want some idea of the variance in the last 90 days. That means a sample of the exchange rates. But exchange rate is a linear scaling, so it can come out the front. e.g. since its linear I can just do R_low\*f(other_vars), R_high\*f(other_vars). That is lucky otherwise if R was not linear part of f then I would have to simulate multiple realisations of f and then compute confints that way. However, because that is not the case, I can efficiently update R_low, R_high, R_mean, R_most_recent each day. Because the values change per day, I can pop older one off the queue and add the new datapoint, then easily update R.
+The step size will be a big factor. It could be an adaptive step size. But this can be part of V3.
 
 Applying the transform from tax paid to effective tax rate will also be efficient: (x,y)-->(x, y/x).
 
-Another problem to solve will be when solving the intersection between two peicewise linear functions. https://stackoverflow.com/questions/54750349/finding-the-intersection-of-two-piecewise-linear-function
+The normalisation in my view should only apply to the y axis. Tax amounts should be on same scale, but x axis should remain on its own scale.
 
-The peicewise linear functions are both monotonically increasing. https://stackoverflow.com/questions/54750349/finding-the-intersection-of-two-piecewise-linear-function
+Good references: 
+1. https://math.stackexchange.com/questions/3488993/intersection-of-2-piecewise-linear-curves
+2. https://publicapis.dev/category/currency-exchange
 
-From someone on stack exchange: "You don't need to take all pairwise combinations of segments, just the overlapping ones. Start with the first segment on each polyline, then consider the next vertex of each. Whichever vertex has the lower x value, advance that polyline to the next segment. If your polylines have k1 and k2 segments, respectivement, this is O(k1 + k2) not O(k1 * k2) as it would be to test all pairs."
-
-https://math.stackexchange.com/questions/3488993/intersection-of-2-piecewise-linear-curves
-
-The approach: Two pointers to only process overlapping segments. Finding intersection by setting up two systems of linear equations.
-
-
-
-Income Tax as a function of income is f(fixed_params, exchange_rate). 95% confint [f_lower, f_upper]. But since exchange rate is linear then can pull out: [exchange_rate_lower*f(params), exchange_rate_upper*f(params)]
-
-https://publicapis.dev/category/currency-exchange
