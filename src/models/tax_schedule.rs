@@ -7,13 +7,69 @@ use crate::MarginalRateKnot;
 use crate::TaxError;
 use rayon::prelude::*;
 
+/// TODO: Need to split out the representations
 /// An income tax table is represented here
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct IncomeTaxSchedule {
     /// A sorted vector of points where the marginal tax rates change.
-    schedule: Vec<MarginalRateKnot>,
+    pub schedule: Vec<MarginalRateKnot>,
 }
 impl IncomeTaxSchedule {
+    // Lots to clean up here. Might be a need to have two different schedule classes to ensure no
+    // confusion
+
+    /// Given income tax knots, do binary search to find the segment and then interpolate
+    pub fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Option<f32> {
+        // TODO: This doesn't catch all the edge cases but should be good enough for now.
+        if income < 0.0 {
+            return None;
+        }
+        let mut l = 0;
+        let mut r = income_tax_knots.len();
+        while l < r {
+            // Cut down search space
+            let mid = l + (r - l) / 2;
+            if income_tax_knots[mid].income_limit == income {
+                return Some(income_tax_knots[mid].income_tax_amount);
+            }
+            if income_tax_knots[mid].income_limit < income {
+                if income_tax_knots[l].income_limit <= income
+                    && income <= income_tax_knots[l + 1].income_limit
+                {
+                    return LinearPiecewiseSegment {
+                        left_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[l].income_limit,
+                            income_tax_amount: income_tax_knots[l].income_tax_amount,
+                        },
+                        right_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[l + 1].income_limit,
+                            income_tax_amount: income_tax_knots[l + 1].income_tax_amount,
+                        },
+                    }
+                    .linear_interpolation(income);
+                }
+                l = mid;
+            } else {
+                if income_tax_knots[r - 1].income_limit <= income
+                    && income <= income_tax_knots[r].income_limit
+                {
+                    return LinearPiecewiseSegment {
+                        left_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[r - 1].income_limit,
+                            income_tax_amount: income_tax_knots[r - 1].income_tax_amount,
+                        },
+                        right_point: IncomeTaxKnot {
+                            income_limit: income_tax_knots[r].income_limit,
+                            income_tax_amount: income_tax_knots[r].income_tax_amount,
+                        },
+                    }
+                    .linear_interpolation(income);
+                }
+                r = mid;
+            }
+        }
+        None
+    }
     /// Dot((r_i - r_{i-1}), max(0, x - b_{i-1}) where (b_0, r_0) = (0,0)
     fn get_tax_amount_from_marginal_rates_knots(&self, income: f32) -> Result<f32, TaxError> {
         if income < 0.0 {
@@ -25,21 +81,21 @@ impl IncomeTaxSchedule {
             let prev_limit = if i > 0 {
                 marginal_tax_rates_knots[i - 1].income_limit
             } else {
-                0.0
+                Some(0.0)
             };
             let prev_rate = if i > 0 {
                 marginal_tax_rates_knots[i - 1].marginal_rate
             } else {
                 0.0
             };
-            tax_amount +=
-                (marginal_tax_knot.marginal_rate - prev_rate) * (income - prev_limit).max(0.0);
+            tax_amount += (marginal_tax_knot.marginal_rate - prev_rate)
+                * (income - prev_limit.expect("Error")).max(0.0);
         }
         Ok(tax_amount)
     }
 
     /// Better representation for efficient computation of taxes
-    fn to_income_amount_schedule(&self, max_income_to_consider: f32) -> Vec<IncomeTaxKnot> {
+    pub fn to_income_amount_schedule(&self, max_income_to_consider: f32) -> Vec<IncomeTaxKnot> {
         // Needs (0,0)
         let mut income_tax_knots = vec![IncomeTaxKnot {
             income_limit: 0.0,
@@ -47,14 +103,16 @@ impl IncomeTaxSchedule {
         }];
         for (i, marginal_rate_knot) in self.schedule.iter().enumerate() {
             if i == self.schedule.len() - 1
-                || marginal_rate_knot.income_limit > max_income_to_consider
+                || marginal_rate_knot.income_limit.unwrap() > max_income_to_consider
             {
                 break; // skip the last knot and replace with the max income to consider. Or truncate early.
             }
             income_tax_knots.push(IncomeTaxKnot {
-                income_limit: marginal_rate_knot.income_limit,
+                income_limit: marginal_rate_knot.income_limit.expect("Error"),
                 income_tax_amount: self
-                    .get_tax_amount_from_marginal_rates_knots(marginal_rate_knot.income_limit)
+                    .get_tax_amount_from_marginal_rates_knots(
+                        marginal_rate_knot.income_limit.expect("Error"),
+                    )
                     .expect("Error"),
             });
         }
@@ -148,62 +206,9 @@ pub fn interpolate_segments_parallel(
         .collect())
 }
 
-/// Given income tax knots, do binary search to find the segment and then interpolate
-fn compute_income_tax(income: f32, income_tax_knots: &Vec<IncomeTaxKnot>) -> Option<f32> {
-    // TODO: This doesn't catch all the edge cases but should be good enough for now.
-    if income < 0.0 {
-        return None;
-    }
-    let mut l = 0;
-    let mut r = income_tax_knots.len();
-    while l < r {
-        // Cut down search space
-        let mid = l + (r - l) / 2;
-        if income_tax_knots[mid].income_limit == income {
-            return Some(income_tax_knots[mid].income_tax_amount);
-        }
-        if income_tax_knots[mid].income_limit < income {
-            if income_tax_knots[l].income_limit <= income
-                && income <= income_tax_knots[l + 1].income_limit
-            {
-                return LinearPiecewiseSegment {
-                    left_point: IncomeTaxKnot {
-                        income_limit: income_tax_knots[l].income_limit,
-                        income_tax_amount: income_tax_knots[l].income_tax_amount,
-                    },
-                    right_point: IncomeTaxKnot {
-                        income_limit: income_tax_knots[l + 1].income_limit,
-                        income_tax_amount: income_tax_knots[l + 1].income_tax_amount,
-                    },
-                }
-                .linear_interpolation(income);
-            }
-            l = mid;
-        } else {
-            if income_tax_knots[r - 1].income_limit <= income
-                && income <= income_tax_knots[r].income_limit
-            {
-                return LinearPiecewiseSegment {
-                    left_point: IncomeTaxKnot {
-                        income_limit: income_tax_knots[r - 1].income_limit,
-                        income_tax_amount: income_tax_knots[r - 1].income_tax_amount,
-                    },
-                    right_point: IncomeTaxKnot {
-                        income_limit: income_tax_knots[r].income_limit,
-                        income_tax_amount: income_tax_knots[r].income_tax_amount,
-                    },
-                }
-                .linear_interpolation(income);
-            }
-            r = mid;
-        }
-    }
-    None
-}
-
-fn compute_breakeven_points(
-    knots1: Vec<IncomeTaxKnot>,
-    knots2: Vec<IncomeTaxKnot>,
+pub fn compute_breakeven_points(
+    knots1: &[IncomeTaxKnot],
+    knots2: &[IncomeTaxKnot],
 ) -> Vec<IncomeTaxPoint> {
     // Do not forget that for knots derived from tax schedules we need to define an upper bound (cannot be inf, inf...)
 
@@ -249,23 +254,23 @@ fn compute_breakeven_points(
 #[cfg(test)]
 mod tests {
     use crate::models::tax_schedule::*;
-    use crate::{IncomeTaxKnot, MarginalRateKnot, TaxError};
     use crate::utils::utils::income_points_are_approx_eq;
+    use crate::{IncomeTaxKnot, MarginalRateKnot, TaxError};
     #[test]
     fn test_marginal_rates_schedule_to_income_tax_amount_schedule() {
         let schedule = IncomeTaxSchedule {
             schedule: vec![
                 MarginalRateKnot {
                     marginal_rate: 0.1,
-                    income_limit: 10000.0,
+                    income_limit: Some(10000.0),
                 },
                 MarginalRateKnot {
                     marginal_rate: 0.2,
-                    income_limit: 20000.0,
+                    income_limit: Some(20000.0),
                 },
                 MarginalRateKnot {
                     marginal_rate: 0.3,
-                    income_limit: f32::INFINITY,
+                    income_limit: Some(f32::INFINITY),
                 },
             ],
         };
@@ -319,16 +324,16 @@ mod tests {
             },
         ];
 
-        let result = compute_income_tax(25000.0, &income_tax_knots);
+        let result = IncomeTaxSchedule::compute_income_tax(25000.0, &income_tax_knots);
         assert_eq!(result, Some(4500.0));
 
-        let result = compute_income_tax(5000.0, &income_tax_knots);
+        let result = IncomeTaxSchedule::compute_income_tax(5000.0, &income_tax_knots);
         assert_eq!(result, Some(500.0));
 
-        let invalid_result = compute_income_tax(-25000.0, &income_tax_knots);
+        let invalid_result = IncomeTaxSchedule::compute_income_tax(-25000.0, &income_tax_knots);
         assert!(invalid_result.is_none());
 
-        let zero_result = compute_income_tax(0.0, &income_tax_knots);
+        let zero_result = IncomeTaxSchedule::compute_income_tax(0.0, &income_tax_knots);
         assert_eq!(zero_result, Some(0.0));
     }
 
@@ -339,15 +344,15 @@ mod tests {
             schedule: vec![
                 MarginalRateKnot {
                     marginal_rate: 0.1,
-                    income_limit: 10000.0,
+                    income_limit: Some(10000.0),
                 },
                 MarginalRateKnot {
                     marginal_rate: 0.2,
-                    income_limit: 20000.0,
+                    income_limit: Some(20000.0),
                 },
                 MarginalRateKnot {
                     marginal_rate: 0.3,
-                    income_limit: f32::INFINITY,
+                    income_limit: Some(f32::INFINITY),
                 },
             ],
         };
@@ -506,7 +511,7 @@ mod tests {
             },
         ];
 
-        let breakevens = compute_breakeven_points(curve1, curve2);
+        let breakevens = compute_breakeven_points(&curve1, &curve2);
         let tolerance = 1e-5;
         assert!(income_points_are_approx_eq(
             breakevens[0].clone(),
