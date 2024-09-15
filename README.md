@@ -1,5 +1,17 @@
 # Compare effective tax rates between countries
 
+TODO: Need to factor the logic to be concise & organised... meaning:
+
+Segment logic
+Schedule logic (two schedules, maybe good to keep separate)
+Requests/Response logic
+More...
+
+Only expose publically what is needed. Implementation details can stay hidden in the modules.
+
+Need to also think about how to get the modules organised effectively
+
+
 
 ### Frontend: 
 
