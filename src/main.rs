@@ -20,10 +20,6 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use rayon::prelude::*;
 use serde::Deserialize;
 
-// Rest API calls etc. Efficient processing for each country etc...
-// Request will come in with (1) Countries list<string>, (2) Income float, (3) Do breakeven points t/f, (4) max_income float, (5) Exchange rate.
-// Dispatch off to the things efficiently...
-
 /// A point characterised by a marginal tax rate at a given level of income
 #[derive(Clone, Debug, Deserialize)]
 struct MarginalRateKnot {
