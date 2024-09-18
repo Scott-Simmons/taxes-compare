@@ -246,5 +246,4 @@ It would be appropriate to look into an approach that uses an adaptive step size
 
 #### References used (non-exhaustive): 
 1. https://math.stackexchange.com/questions/3488993/intersection-of-2-piecewise-linear-curves
-2. https://publicapis.dev/category/currency-exchange
 
