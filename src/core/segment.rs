@@ -1,5 +1,4 @@
-use crate::IncomeTaxKnot;
-use crate::IncomeTaxPoint;
+use crate::core::points::tax_amount::{IncomeTaxKnot, IncomeTaxPoint};
 use std::cmp::Ordering;
 
 /// A line segment characterised by two points
@@ -7,23 +6,46 @@ use std::cmp::Ordering;
 pub struct LinearPiecewiseSegment {
     /// Two knot points characterise a segment of a linear piecewise function
     /// https://en.wikipedia.org/wiki/Line_segment
-    pub left_point: IncomeTaxKnot, // fix up later
-    pub right_point: IncomeTaxKnot, // fix up later
-                                    // some kind of assert so that left point x value always less than right point x value
+    pub left_point: IncomeTaxKnot,
+    pub right_point: IncomeTaxKnot,
 }
+
 /// Linearly interpolate a line segment at an income value, to get a taxation value.
 impl LinearPiecewiseSegment {
+    pub fn new(left_point: IncomeTaxKnot, right_point: IncomeTaxKnot) -> Result<Self, String> {
+        if left_point.income_limit() < right_point.income_limit() {
+            Ok(LinearPiecewiseSegment {
+                left_point,
+                right_point,
+            })
+        } else {
+            Err(
+                "Left point income threshold must be less than the right income threshold."
+                    .to_string(),
+            )
+        }
+    }
+
+    /// Linear interpolation
     pub fn linear_interpolation(&self, income: f32) -> Option<f32> {
-        if income < f32::min(self.left_point.income_limit, self.right_point.income_limit)
-            || income > f32::max(self.right_point.income_limit, self.left_point.income_limit)
+        if income
+            < f32::min(
+                self.left_point.income_limit(),
+                self.right_point.income_limit(),
+            )
+            || income
+                > f32::max(
+                    self.right_point.income_limit(),
+                    self.left_point.income_limit(),
+                )
         {
             return None;
         }
         Some(
-            self.left_point.income_tax_amount
-                + ((self.right_point.income_tax_amount - self.left_point.income_tax_amount)
-                    * (income - self.left_point.income_limit))
-                    / (self.right_point.income_limit - self.left_point.income_limit),
+            self.left_point.income_tax_amount()
+                + (self.right_point.income_tax_amount() - self.left_point.income_tax_amount())
+                    * (income - self.left_point.income_limit())
+                    / (self.right_point.income_limit() - self.left_point.income_limit()),
         )
     }
     /// Gets line segments into a form parameterised as l = a * t(b - a) where a and b are
@@ -40,14 +62,14 @@ impl LinearPiecewiseSegment {
         &self,
         segment_to_intersect: &LinearPiecewiseSegment,
     ) -> Option<IncomeTaxPoint> {
-        let x1 = self.left_point.income_limit;
-        let x2 = self.right_point.income_limit;
-        let y1 = self.left_point.income_tax_amount;
-        let y2 = self.right_point.income_tax_amount;
-        let q1 = segment_to_intersect.left_point.income_limit;
-        let q2 = segment_to_intersect.right_point.income_limit;
-        let r1 = segment_to_intersect.left_point.income_tax_amount;
-        let r2 = segment_to_intersect.right_point.income_tax_amount;
+        let x1 = self.left_point.income_limit();
+        let x2 = self.right_point.income_limit();
+        let y1 = self.left_point.income_tax_amount();
+        let y2 = self.right_point.income_tax_amount();
+        let q1 = segment_to_intersect.left_point.income_limit();
+        let q2 = segment_to_intersect.right_point.income_limit();
+        let r1 = segment_to_intersect.left_point.income_tax_amount();
+        let r2 = segment_to_intersect.right_point.income_tax_amount();
         //
         // https://docs.rs/nalgebra/latest/nalgebra/macro.matrix.html
         let matrix_lhs = nalgebra::matrix![
@@ -68,10 +90,10 @@ impl LinearPiecewiseSegment {
                         // Verify solution satisfies t \in [0, 1]
                         let (t1, t2) = (solution[(0, 0)], solution[(1, 0)]);
                         if (0.0 <= t1 && t1 <= 1.0) && (0.0 <= t2 && t2 <= 1.0) {
-                            Some(IncomeTaxPoint {
-                                income_tax_amount: y1 + t1 * (y2 - y1),
-                                income: x1 + t1 * (x2 - x1),
-                            })
+                            Some(IncomeTaxPoint::new(
+                                x1 + t1 * (x2 - x1),
+                                y1 + t1 * (y2 - y1),
+                            ))
                         } else {
                             None // No intersection within the segment range.
                         }
@@ -84,18 +106,17 @@ impl LinearPiecewiseSegment {
 
 #[cfg(test)]
 mod tests {
-    use crate::{IncomeTaxKnot, IncomeTaxPoint, LinearPiecewiseSegment};
+
+    use crate::core::points::tax_amount::{IncomeTaxKnot, IncomeTaxPoint};
+    use crate::core::segment::LinearPiecewiseSegment;
+
+    // TODO: Test object creation
+
     #[test]
     fn test_linear_interpolation() {
         let segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 5.0,
-                income_tax_amount: 3.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 4.0,
-                income_tax_amount: 6.0,
-            },
+            left_point: IncomeTaxKnot::new(5.0, 3.0),
+            right_point: IncomeTaxKnot::new(4.0, 6.0),
         };
         let valid_result = segment.linear_interpolation(4.5);
         assert_eq!(valid_result, Some(4.5));
@@ -111,63 +132,27 @@ mod tests {
     fn test_get_breakeven_point() {
         // https://www.desmos.com/calculato
         let test_segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 10.0,
-                income_tax_amount: 0.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 0.0,
-                income_tax_amount: 10.0,
-            },
+            left_point: IncomeTaxKnot::new(10.0, 0.0),
+            right_point: IncomeTaxKnot::new(0.0, 10.0),
         };
         let interecting_segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 10.0,
-                income_tax_amount: 10.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 0.0,
-                income_tax_amount: 0.0,
-            },
+            left_point: IncomeTaxKnot::new(10.0, 10.0),
+            right_point: IncomeTaxKnot::new(0.0, 0.0),
         };
 
         let result = test_segment.compute_intersection(&interecting_segment);
-        assert_eq!(
-            result.unwrap(),
-            IncomeTaxPoint {
-                income_tax_amount: 5.0,
-                income: 5.0
-            }
-        );
+        assert_eq!(result.unwrap(), IncomeTaxPoint::new(5.0, 5.0));
 
         let barely_interecting_segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 5.0,
-                income_tax_amount: 5.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 0.0,
-                income_tax_amount: 0.0,
-            },
+            left_point: IncomeTaxKnot::new(5.0, 5.0),
+            right_point: IncomeTaxKnot::new(0.0, 0.0),
         };
         let result = test_segment.compute_intersection(&barely_interecting_segment);
-        assert_eq!(
-            result.unwrap(),
-            IncomeTaxPoint {
-                income_tax_amount: 5.0,
-                income: 5.0
-            }
-        );
+        assert_eq!(result.unwrap(), IncomeTaxPoint::new(5.0, 5.0));
 
         let non_interecting_segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 4.0,
-                income_tax_amount: 4.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 0.0,
-                income_tax_amount: 0.0,
-            },
+            left_point: IncomeTaxKnot::new(4.0, 4.0),
+            right_point: IncomeTaxKnot::new(0.0, 0.0),
         };
         let result = test_segment.compute_intersection(&non_interecting_segment);
         assert!(result.is_none());
@@ -176,18 +161,13 @@ mod tests {
         assert!(result.is_none());
 
         let parallel_segment = LinearPiecewiseSegment {
-            left_point: IncomeTaxKnot {
-                income_limit: 0.0,
-                income_tax_amount: 5.0,
-            },
-            right_point: IncomeTaxKnot {
-                income_limit: 5.0,
-                income_tax_amount: 0.0,
-            },
+            left_point: IncomeTaxKnot::new(0.0, 5.0),
+            right_point: IncomeTaxKnot::new(5.0, 0.0),
         };
         let result = parallel_segment.compute_intersection(&test_segment);
         assert!(result.is_none());
 
-        // Need to also test process segments that doesn't line up in x
+        // Need to also test process segments that doesn't line up in x to make sure it doesn't
+        // have unexpected behaviour
     }
 }
