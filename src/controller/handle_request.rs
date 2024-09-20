@@ -25,7 +25,7 @@ pub async fn handle_request(
     config: web::Data<TaxesConfig>,
 ) -> impl Responder {
     info!("Received request: {:?}", req);
-    match &config.process_request(&req.into_inner()) {
+    match &config.process_request(&req.into_inner()).await {
         Ok(response) => {
             info!("Processed request successfully");
             HttpResponse::Ok().json(response)

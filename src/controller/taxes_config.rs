@@ -1,6 +1,8 @@
 use crate::controller::handle_request::TaxPlotDataResponse;
 use crate::core::schedules::marginal_schedule::MarginalIncomeTaxRateSchedule;
-use crate::exchange_rates::exchange_rate_adjustment;
+use crate::exchange_rates::{
+    exchange_rate_adjustment, fetch_exchange_rates, get_currency_country_mapping,
+};
 use crate::utils::{compute_effective_tax_rates, generate_range};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -31,16 +33,27 @@ impl TaxesConfig {
         country_one: &str,
         country_two: &str,
         max_income_to_consider: f32,
+        exchange_rate_config: &Option<HashMap<String, f32>>,
+        country_currency_mapping: &HashMap<&'static str, &'static str>,
     ) -> BreakevenData {
-        // TODO: Neglecting how to handle exchange rates right now but this must be done for breakevens
+        let exchange_rate_one = match exchange_rate_config {
+            Some(exchange_rates) => exchange_rates[country_currency_mapping[country_one]],
+            None => 1.0,
+        };
+        let exchange_rate_two = match exchange_rate_config {
+            Some(exchange_rates) => exchange_rates[country_currency_mapping[country_two]],
+            None => 1.0,
+        };
         let schedule_one = &self
             .get_country(country_one)
             .unwrap()
-            .to_income_amount_schedule(max_income_to_consider);
+            .to_income_amount_schedule(max_income_to_consider)
+            .exchange_rate_adjustment(Some(exchange_rate_one));
         let schedule_two = &self
             .get_country(country_two)
             .unwrap()
-            .to_income_amount_schedule(max_income_to_consider);
+            .to_income_amount_schedule(max_income_to_consider)
+            .exchange_rate_adjustment(Some(exchange_rate_two));
         let breakevens = schedule_one.compute_breakeven_taxes(&schedule_two);
         let (breakeven_incomes, breakeven_amounts): (Vec<f32>, Vec<f32>) = breakevens
             .par_iter()
@@ -66,42 +79,54 @@ impl TaxesConfig {
         incomes_to_compute: &[f32],
         max_income: f32,
         specific_income: f32,
+        exchange_rate_config: &Option<HashMap<String, f32>>,
+        country_currency_mapping: &HashMap<&'static str, &'static str>,
     ) -> TaxData {
+        let exchange_rate = match exchange_rate_config {
+            Some(exchange_rates) => exchange_rates[country_currency_mapping[country]],
+            None => 1.0,
+        };
         let schedule = &self
             .get_country(&country)
             .unwrap()
-            .to_income_amount_schedule(max_income);
+            .to_income_amount_schedule(max_income)
+            .exchange_rate_adjustment(Some(exchange_rate));
+        let specific_income = specific_income * exchange_rate;
+        let incomes_to_compute = exchange_rate_adjustment(&incomes_to_compute, exchange_rate); // guess
         let tax_amounts = match schedule.compute_income_taxes(&incomes_to_compute) {
             Ok(value) => value,
-            Err(_) => panic!("Error"),
+            Err(err) => panic!("Error {:?}", err),
         };
+        let effective_tax_rates = compute_effective_tax_rates(&incomes_to_compute, &tax_amounts);
 
-        // TODO: Fix up
-        let tax_amounts_adjusted = exchange_rate_adjustment(&tax_amounts, 1.0);
-        let effective_tax_rates =
-            compute_effective_tax_rates(&incomes_to_compute, &tax_amounts_adjusted);
-
-        // Get the specific income (neccessary because step size could be too large)
+        // Get the specific income
         let specific_tax_amount = schedule
             .compute_specific_income_tax(specific_income)
             .unwrap();
         let specific_tax_rate = specific_tax_amount / specific_income;
 
         TaxData {
+            tax_amounts,
+            effective_tax_rates,
             incomes: incomes_to_compute.to_vec(),
-            tax_amounts: tax_amounts_adjusted,
             specific_tax_amount: Some(specific_tax_amount),
             specific_tax_rate: Some(specific_tax_rate),
-            effective_tax_rates,
         }
     }
 
     /// Process the request to compute taxes information
-    pub fn process_request(&self, req: &TaxPlotDataRequest) -> Result<TaxPlotDataResponse, String> {
+    pub async fn process_request(
+        &self,
+        req: &TaxPlotDataRequest,
+    ) -> Result<TaxPlotDataResponse, String> {
         let step = 10.0;
         let min_income = 0.0;
         let incomes_to_compute = generate_range(min_income, req.max_income, step);
-
+        let country_currency_mapping = get_currency_country_mapping();
+        let exchange_rates_config = match &req.normalizing_currency {
+            Some(currency) => Some(fetch_exchange_rates(&currency).await.unwrap()),
+            None => None,
+        };
         let country_specific_data: HashMap<String, TaxData> = req
             .countries
             .par_iter()
@@ -111,6 +136,8 @@ impl TaxesConfig {
                     &incomes_to_compute,
                     req.max_income,
                     req.income,
+                    &exchange_rates_config,
+                    &country_currency_mapping,
                 );
                 (country.clone(), tax_data)
             })
@@ -123,13 +150,19 @@ impl TaxesConfig {
                 .par_iter()
                 .enumerate()
                 .flat_map(|(i, country_i)| {
-                    req.countries[i + 1..].par_iter().map(move |country_j| {
-                        let comb_data = self.process_country_breakeven_points(
-                            country_i,
-                            country_j,
-                            req.max_income,
-                        );
-                        (format!("{}-{}", country_i, country_j), comb_data)
+                    req.countries[i + 1..].par_iter().map({
+                        let exchange_rates_config = exchange_rates_config.clone();
+                        let country_currency_mapping = country_currency_mapping.clone();
+                        move |country_j| {
+                            let comb_data = self.process_country_breakeven_points(
+                                country_i,
+                                country_j,
+                                req.max_income,
+                                &exchange_rates_config,
+                                &country_currency_mapping,
+                            );
+                            (format!("{}-{}", country_i, country_j), comb_data)
+                        }
                     })
                 })
                 .collect();
@@ -146,7 +179,7 @@ impl TaxesConfig {
     }
 }
 
-// Other structs tightly linked to TaxesConfig
+// Other structs linked to TaxesConfig
 
 #[derive(Serialize)]
 pub struct BreakevenData {
@@ -158,7 +191,7 @@ pub struct BreakevenData {
 #[derive(Serialize)]
 pub struct TaxData {
     pub incomes: Vec<f32>,
-    pub tax_amounts: Vec<f32>,
+    pub tax_amounts: Vec<f32>, // TODO: tax amounts not needed can just use knot points.
     pub effective_tax_rates: Vec<f32>,
     pub specific_tax_amount: Option<f32>,
     pub specific_tax_rate: Option<f32>,

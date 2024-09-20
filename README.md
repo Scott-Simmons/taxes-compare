@@ -1,5 +1,16 @@
 # Compare effective tax rates between countries
 
+TODOS:
+
+- Dockerise backend
+- Port over frontend and tweak
+- Dockerwise frontend
+- Publish make target
+- Kubernetes manifests (put in same file for )
+- Note on my VPS need to spin up K3s. This can be done with an ansible playbook?
+
+Note that maybe manual deployment might be sufficient tbh. But should dockerise both.
+
 ### Frontend: 
 
 Will be implemented in React + Typescript + Plotly because V1 did a lot of this work already.
