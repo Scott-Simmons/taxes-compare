@@ -23,6 +23,24 @@ impl IncomeTaxAmountSchedule {
         &self.schedule
     }
 
+    /// Adjust the tax amount schedule according to an exchange rate
+    pub fn exchange_rate_adjustment(self, exchange_rate: Option<f32>) -> Self {
+        match exchange_rate {
+            Some(rate) => IncomeTaxAmountSchedule::new(
+                self.schedule
+                    .into_iter()
+                    .map(|knot| {
+                        IncomeTaxKnot::new(
+                            knot.income_limit() * rate,
+                            knot.income_tax_amount() * rate,
+                        )
+                    })
+                    .collect(),
+            ),
+            None => self,
+        }
+    }
+
     /// Compute income tax amounts for a range of incomes
     pub fn compute_income_taxes_in_range(
         &self,
@@ -87,6 +105,11 @@ impl IncomeTaxAmountSchedule {
     /// appropriate segment.
     pub fn compute_income_taxes(&self, incomes: &[f32]) -> Result<Vec<f32>, TaxError> {
         if incomes.last().unwrap() > &self.schedule.last().unwrap().income_limit() {
+            print!(
+                "BROOOOO {}, BROOO {}",
+                incomes.last().unwrap(),
+                &self.schedule.last().unwrap().income_limit()
+            );
             return Err(TaxError::IncomeOutOfBounds);
         }
         // Choose not to parallelise the segments because the number of segments are usually low.
