@@ -1,0 +1,73 @@
+.tax-data-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  
+  .country-container {
+    margin: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid black;
+  }
+  
+  .sticky-header-container {
+    top: 0;
+  }
+  
+  .table-wrapper {
+    overflow-x: auto;
+    max-height: 300px;
+    min-height: 300px;
+  }
+  
+  .tax-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  
+  .tax-table th,
+  .tax-table td {
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .tax-table th {
+    color: #333;
+    background-color: #f5f5f5;
+    position: sticky;
+    top: 0;
+  }
+  
+  .country-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    padding: 10px;
+    background-color: #f5f5f5;
+  }
+  
+.tax-table tbody tr {
+    height: 50px; 
+  }
+
+
+button {
+    background-color: #4caf50; 
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 10px auto; 
+    display: block; 
+  }
+  
+  button:hover {
+    background-color: #45a049; 
+  }
