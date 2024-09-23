@@ -1,0 +1,19 @@
+.three-columns {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0; 
+}
+
+.Description {
+  flex: 1;
+  padding: 0 40px; 
+  border-right: 1px solid #ccc; 
+}
+
+.Description:last-child {
+  border-right: none; 
+}
+
+.Description h3 {
+  margin-bottom: 10px;
+}

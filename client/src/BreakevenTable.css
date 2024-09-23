@@ -1,0 +1,21 @@
+.breakeven-container {
+    margin-top: 20px;
+}
+
+.breakeven-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    border: 2px solid black; 
+}
+
+.breakeven-table th, .breakeven-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.breakeven-table th {
+    background-color: #f5f5f5;
+    color: #333;
+}
