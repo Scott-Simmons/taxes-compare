@@ -14,7 +14,6 @@ interface GlobalOptionsFormProps {
   onGlobalOptionsChange: (options: Partial<GlobalOptions>) => void;
   incomeError: string | null;
   maxIncomeError: string | null;
-  countriesCount: number;
   onComputeButtonClick: any;
 }
 
@@ -23,19 +22,9 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
   onGlobalOptionsChange,
   incomeError,
   maxIncomeError,
-  countriesCount,
   onComputeButtonClick,
 }) => {
-  const [incomeInfoVisible, setIncomeInfoVisible] = useState(false);
-  const [maxIncomeInfoVisible, setMaxIncomeInfoVisible] = useState(false);
-
-  const handleIncomeInfoClick = () => {
-    setIncomeInfoVisible(!incomeInfoVisible);
-  };
-
-  const handleMaxIncomeInfoClick = () => {
-    setMaxIncomeInfoVisible(!maxIncomeInfoVisible);
-  };
+  const [incomeInfoVisible, _] = useState(false);
 
   return (
     <div className="global-options-form">

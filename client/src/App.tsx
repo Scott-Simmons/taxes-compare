@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef} from 'react';
 import './App.css';
 import Header from './Header';
-import ThreeColumns from './Description'; // TODO:  Consider deleting this entirely
 import CountryForm from './AddCountry';
 import { GlobalOptions } from './OtherOptions';
+import CurrencyForm from './CurrencyForm'
 import axios from 'axios';
 import GlobalOptionsForm from './OtherOptions';
 import PlotSwitcher from './PlotComp';
@@ -51,40 +51,31 @@ interface BackEndResponse {
 };
 
 const App: React.FC = () => {
-
   const max_allowable_income: number = 1e9;
-
   const [loading, setLoading] = useState(false);
-
   const [incomeError, setIncomeError] = useState<string | null>(null);
   const [maxIncomeError, setMaxIncomeError] = useState<string | null>(null);
-
   const [countries, setCountries] = useState<string[]>([]);
-
   const [responseData, setresponseData] = useState<BackEndResponse | null>(null);
-
-
   const plotElementRef = useRef<HTMLDivElement | null>(null);
-
   const [globalOptions, setGlobalOptions] = useState<GlobalOptions>({
     income: 0,
     showBreakevenPoints: false,
     max_income: 500000,
   });
-
-  const handleAddCountry = (country: string) => {
-    setCountries((prevCountries) => [...prevCountries, country]);
+  const [currency, setCurrency] = useState<string>("Local Currency");
+ const handleAddCountry = (country: string) => {
+    setCountries((prev) => [...prev, country]);
   };
-
-  
 
   const handleRemoveCountry = (country: string) => {
-    setCountries((prevCountries) => prevCountries.filter((c) => c !== country));
+    setCountries((prev) => prev.filter(c => c !== country));
   };
-
+  const handleSelectCurrency = (newCurrency: string) => {
+    setCurrency(newCurrency);
+  };
   const handleGlobalOptionsChange = (options: Partial<GlobalOptions>) => {
     const updatedOptions = { ...globalOptions, ...options };
-
     if (updatedOptions.income !== undefined && (updatedOptions.income === "" || updatedOptions.income <= updatedOptions.max_income)) {
       setGlobalOptions(updatedOptions);
       setIncomeError(null);
@@ -97,18 +88,14 @@ const App: React.FC = () => {
     if (updatedOptions.max_income === undefined || updatedOptions.max_income === 0) {
       setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) gives the size of the x axis and must be greater than 0 (reccomended to set to something between 100k - 1 mil)`)
     }
-    
     const max_income_num: number = +updatedOptions.max_income;
     if (max_income_num > max_allowable_income) {
       setMaxIncomeError(`Max income (currently set to: ${max_income_num}) is too large. Must be less than 1*10^7)`)
     }
     setGlobalOptions(updatedOptions);
-
   };
-
   const handleCompute = async () => {
     setLoading(true)
-
     const { income, max_income } = globalOptions;
     if (max_income === 0) {
       setLoading(false);
@@ -123,17 +110,13 @@ const App: React.FC = () => {
     if (+max_income > max_allowable_income) {
       setLoading(false);
       alert(`Max income cannot be greater than ${max_allowable_income}`);
-    
       return;
     }
-
     if (countries.length === 0) {
       setLoading(false);
       alert("Add at least one country before computing taxes")
       return;
     }
-
-
     const requestData = {
       countries: countries,
       globalOptions: { ...globalOptions, income: globalOptions.income === '' ? 0 : globalOptions.income},
@@ -142,8 +125,7 @@ const App: React.FC = () => {
     if (!hostname) {
       return
     }
-    const backendEndpoint: string = `${hostname}/api/api/compute-tax-rates/`;
-
+    const backendEndpoint: string = `${hostname}/process`;
     try {
       setLoading(true);
       const responseData = await axios.post(backendEndpoint, requestData, {
@@ -151,33 +133,24 @@ const App: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-
       setresponseData(responseData.data);
-
       } catch (error) {
     } finally {
       setLoading(false)
-      
     }
-
   };
-
   useEffect(() => {
     if (responseData && plotElementRef.current) {
       plotElementRef.current?.scrollIntoView({behavior: 'smooth'});
     }
   }, [responseData]);
-
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
         handleCompute();
       }
     };
-  
     document.addEventListener('keydown', handleKeyDown);
-  
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
@@ -191,12 +164,15 @@ const App: React.FC = () => {
         onRemoveCountry={handleRemoveCountry}
         countries={countries}
       />
+      <CurrencyForm
+        currency={currency}
+        onSelectCurrency={handleSelectCurrency}
+      />
       <GlobalOptionsForm
         globalOptions={globalOptions}
         onGlobalOptionsChange={handleGlobalOptionsChange}
         incomeError={incomeError}
         maxIncomeError={maxIncomeError}
-        countriesCount={countries.length}
         onComputeButtonClick={handleCompute}
       />
       {loading ? (
