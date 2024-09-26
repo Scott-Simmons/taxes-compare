@@ -1,21 +1,16 @@
 import React, { useState } from "react";
-import Plot from "react-plotly.js";
 import "./PlotComp.css";
+import TaxAmountsPlot from "./TaxAmountsPlot";
+import TaxRatesPlot from "./TaxRatesPlot";
+import { BackEndResponse } from "./types";
 
-interface PlotComponentProps {
-  // TODO: Get actual types lol
-  plotAData: any[]; 
-  plotALayout: any; 
-  plotBData: any[];
-  plotBLayout: any;
+interface PlotSwitcherProps {
+  data: BackEndResponse;
+  income: number;
+  currency: string;
 }
 
-const PlotSwitcher: React.FC<PlotComponentProps> = ({
-  plotAData,
-  plotALayout,
-  plotBData,
-  plotBLayout,
-}) => {
+const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data, income, currency }) => {
   const [isDollarActive, setIsDollarActive] = useState(true);
 
   const toggleSwitch = () => {
@@ -41,23 +36,8 @@ const PlotSwitcher: React.FC<PlotComponentProps> = ({
           <span>$</span>
         </button>
       </div>
-
       <div className="plot-container">
-        {isDollarActive ? (
-          <Plot
-            data={plotAData}
-            layout={plotALayout}
-            useResizeHandler={true}
-            style={{ width: "80vw", height: "80vh" }}
-          />
-        ) : (
-          <Plot
-            data={plotBData}
-            layout={plotBLayout}
-            useResizeHandler={true}
-            style={{ width: "80vw", height: "80vh" }}
-          />
-        )}
+        {isDollarActive ? (<TaxRatesPlot data={data}/>) : (<TaxAmountsPlot data={data}/>)}
       </div>
     </div>
   );
