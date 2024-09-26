@@ -5,18 +5,19 @@ import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 interface CurrencyFormProps {
   onSelectCurrency: (currency: string) => void;
-  currency: string;
+  currency: string | null;
 }
 
 const CurrencyForm: React.FC<CurrencyFormProps> = ({
   onSelectCurrency,
   currency,
 }) => {
-  const [selectedCurrency, setSelectedCurrency] = useState<string>(currency);
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(currency);
   
   const currencyOptions = [
-    { value: '', label: 'Select a currency' },
+    { value: 'Local Currency', label: 'Local Currency' },
     { value: 'AUD', label: 'Australian Dollar (AUD)' },
+    { value: 'NZD', label: 'New Zealand Dollar (NZD)' },
     { value: 'CAD', label: 'Canadian Dollar (CAD)' },
     { value: 'EUR', label: 'Euro (EUR)' },
     { value: 'GBP', label: 'British Pound (GBP)' },
@@ -47,7 +48,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
       </div>
       <select
         id="currency"
-        value={selectedCurrency}
+        value={selectedCurrency === null ? "Local Currency" : selectedCurrency}
         onChange={handleCurrencyChange}
         className="select"
       >
