@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A point characterised by tax amount at given income, which is also denoted as a knot point
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct IncomeTaxKnot {
     /// Income tax amount f(x) for a given maximimum income level x
     income_tax_amount: f32,

@@ -105,11 +105,6 @@ impl IncomeTaxAmountSchedule {
     /// appropriate segment.
     pub fn compute_income_taxes(&self, incomes: &[f32]) -> Result<Vec<f32>, TaxError> {
         if incomes.last().unwrap() > &self.schedule.last().unwrap().income_limit() {
-            print!(
-                "BROOOOO {}, BROOO {}",
-                incomes.last().unwrap(),
-                &self.schedule.last().unwrap().income_limit()
-            );
             return Err(TaxError::IncomeOutOfBounds);
         }
         // Choose not to parallelise the segments because the number of segments are usually low.
@@ -126,8 +121,12 @@ impl IncomeTaxAmountSchedule {
 
     /// Given income tax knots, do binary search to find the appropriate linear segment
     /// and then interpolate at some level of income in the segment.
-    pub fn compute_specific_income_tax(&self, income: f32) -> Option<f32> {
+    pub fn compute_specific_income_tax(&self, income: Option<f32>) -> Option<f32> {
         // TODO: This doesn't catch all the edge cases but should be good enough for now.
+        if income == None {
+            return None;
+        }
+        let income = income.unwrap();
         if income < 0.0 {
             return None;
         }
@@ -219,13 +218,13 @@ mod tests {
             IncomeTaxKnot::new(100000.0, 27000.0),
         ];
         let schedule = IncomeTaxAmountSchedule::new(income_tax_knots);
-        let result = schedule.compute_specific_income_tax(25000.0);
+        let result = schedule.compute_specific_income_tax(Some(25000.0));
         assert_eq!(result, Some(4500.0));
-        let result = schedule.compute_specific_income_tax(5000.0);
+        let result = schedule.compute_specific_income_tax(Some(5000.0));
         assert_eq!(result, Some(500.0));
-        let invalid_result = schedule.compute_specific_income_tax(-25000.0);
+        let invalid_result = schedule.compute_specific_income_tax(Some(-25000.0));
         assert!(invalid_result.is_none());
-        let zero_result = schedule.compute_specific_income_tax(0.0);
+        let zero_result = schedule.compute_specific_income_tax(Some(0.0));
         assert_eq!(zero_result, Some(0.0));
     }
 

@@ -13,7 +13,7 @@ pub struct TaxPlotDataResponse {
 #[derive(Serialize, Debug, Deserialize)]
 pub struct TaxPlotDataRequest {
     pub countries: Vec<String>,
-    pub income: f32,
+    pub income: Option<f32>,
     pub max_income: f32,
     pub show_break_even: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -25,7 +25,7 @@ pub async fn handle_request(
     config: web::Data<TaxesConfig>,
 ) -> impl Responder {
     info!("Received request: {:?}", req);
-    match &config.process_request(&req.into_inner()).await {
+    let res = match &config.process_request(&req.into_inner()).await {
         Ok(response) => {
             info!("Processed request successfully");
             HttpResponse::Ok().json(response)
@@ -34,5 +34,6 @@ pub async fn handle_request(
             eprint!("Error processing request: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
-    }
+    };
+    return res;
 }
