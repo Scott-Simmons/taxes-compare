@@ -1,8 +1,8 @@
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json;
 
 /// A point characterised by a marginal tax rate at a given level of income
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MarginalRateKnot {
     /// The marginal tax rate f(x) at given income threshold x
     marginal_rate: f32,

@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 
 use taxes_redux::controller::handle_request::handle_request;
@@ -7,9 +8,9 @@ use taxes_redux::controller::taxes_config::TaxesConfig;
 async fn main() -> std::io::Result<()> {
     env_logger::init();
     let taxes_config = TaxesConfig::new("./assets/taxes.json");
-
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(taxes_config.clone()))
             .route("/process", web::post().to(handle_request))
     })

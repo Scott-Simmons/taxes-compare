@@ -1,4 +1,5 @@
 use crate::controller::handle_request::TaxPlotDataResponse;
+use crate::core::points::marginal_rate_knot::MarginalRateKnot;
 use crate::core::schedules::marginal_schedule::MarginalIncomeTaxRateSchedule;
 use crate::exchange_rates::{
     exchange_rate_adjustment, fetch_exchange_rates, get_currency_country_mapping,
@@ -78,7 +79,7 @@ impl TaxesConfig {
         country: &str,
         incomes_to_compute: &[f32],
         max_income: f32,
-        specific_income: f32,
+        specific_income: Option<f32>,
         exchange_rate_config: &Option<HashMap<String, f32>>,
         country_currency_mapping: &HashMap<&'static str, &'static str>,
     ) -> TaxData {
@@ -91,8 +92,8 @@ impl TaxesConfig {
             .unwrap()
             .to_income_amount_schedule(max_income)
             .exchange_rate_adjustment(Some(exchange_rate));
-        let specific_income = specific_income * exchange_rate;
-        let incomes_to_compute = exchange_rate_adjustment(&incomes_to_compute, exchange_rate); // guess
+        let specific_income = specific_income.and_then(|income| Some(income * exchange_rate));
+        let incomes_to_compute = exchange_rate_adjustment(&incomes_to_compute, exchange_rate);
         let tax_amounts = match schedule.compute_income_taxes(&incomes_to_compute) {
             Ok(value) => value,
             Err(err) => panic!("Error {:?}", err),
@@ -100,17 +101,26 @@ impl TaxesConfig {
         let effective_tax_rates = compute_effective_tax_rates(&incomes_to_compute, &tax_amounts);
 
         // Get the specific income
-        let specific_tax_amount = schedule
-            .compute_specific_income_tax(specific_income)
-            .unwrap();
-        let specific_tax_rate = specific_tax_amount / specific_income;
+        let specific_tax_amount = schedule.compute_specific_income_tax(specific_income);
+        let specific_tax_rate = specific_tax_amount.and_then(|tax_amount| {
+            specific_income.map(|specific_income| tax_amount / specific_income)
+        });
 
         TaxData {
             tax_amounts,
             effective_tax_rates,
+            // we want to pass back the income so that the plots that use income on client side
+            // is always synced up with the backend "compute" income.
+            specific_income,
+            specific_tax_amount,
+            specific_tax_rate,
             incomes: incomes_to_compute.to_vec(),
-            specific_tax_amount: Some(specific_tax_amount),
-            specific_tax_rate: Some(specific_tax_rate),
+            tax_brackets: self.get_country(country).unwrap().schedule().to_vec(),
+            exchange_rate: if exchange_rate == 1.0 {
+                None
+            } else {
+                Some(exchange_rate)
+            },
         }
     }
 
@@ -180,7 +190,6 @@ impl TaxesConfig {
 }
 
 // Other structs linked to TaxesConfig
-
 #[derive(Serialize)]
 pub struct BreakevenData {
     pub breakeven_incomes: Vec<f32>,
@@ -195,6 +204,9 @@ pub struct TaxData {
     pub effective_tax_rates: Vec<f32>,
     pub specific_tax_amount: Option<f32>,
     pub specific_tax_rate: Option<f32>,
+    pub tax_brackets: Vec<MarginalRateKnot>,
+    pub exchange_rate: Option<f32>,
+    pub specific_income: Option<f32>,
 }
 
 #[cfg(test)]
