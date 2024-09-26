@@ -4,9 +4,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 export interface GlobalOptions {
-  income: number | string;
+  income: number;
   showBreakevenPoints: boolean;
   max_income: number | string;
+  countries: string[];
 }
 
 interface GlobalOptionsFormProps {
@@ -28,6 +29,7 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
 
   return (
     <div className="global-options-form">
+
       <div className="form-group">
         <label className="label-text-custom" htmlFor="income">
           Income: (optional)
@@ -49,6 +51,7 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
         />
         {incomeError && <div className="error-message">{incomeError}</div>}
       </div>
+
       <div className="form-group">
         <label className="label-text-custom" htmlFor="max_income">
           Maximum Income to consider: (scale)
@@ -65,7 +68,8 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
         />
         {maxIncomeError && <div className="error-message">{maxIncomeError}</div>}
       </div>
-      <div className={'form-group checkbox-group'}>
+
+      {globalOptions.countries.length > 1 && (<div className={'form-group checkbox-group'}>
       <label className="label-text-custom checkbox-label" htmlFor="showBreakevenPoints">
         <input
           className="checkbox-field"
@@ -79,13 +83,14 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
           <FontAwesomeIcon icon={faInfoCircle} />
         </span>
       </label>
-  </div>
-        <div className="form-group">
-        <button className='compute-button' onClick={onComputeButtonClick}>
-          Compute Taxes
-        </button>
+      </div>)}
 
+      <div className="form-group">
+      <button className='compute-button' onClick={onComputeButtonClick}>
+        Compute Taxes
+      </button>
       </div>
+
     </div>
   );
 };

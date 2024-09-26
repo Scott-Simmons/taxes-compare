@@ -10,48 +10,20 @@ import PlotSwitcher from './PlotComp';
 import { RingLoader } from "react-spinners";
 import TaxData from './TaxTable';
 import IncomeData from './IncomeTable';
+import ExchangeRateData from './ExchangeRateTable';
 import BreakevenData from './BreakevenTable';
+import { BackEndResponse } from './types';
 
 // TODO: This should be passed in as an env var
-//const REACT_APP_API_URL: string = "http://localhost:8000";
-const REACT_APP_API_URL: string = "https://taxes-compare.com";
-
-interface BackEndResponse {
-
-  plot_rates: {
-    data: any[];
-    layout: any;
-  };
-
-  plot_amounts: {
-    data: any[];
-    layout: any;
-  };
-
-  income_dict: {
-    [country_key: string]: {
-      income: number;
-      rate: number;
-      amount: number;
-    };
-  } | null | undefined;
-
-  breakeven_dict: {
-    [country_combination_key: string]: { 
-      breakeven_income: number;
-      breakeven_rate: number;
-      breakeven_amount: number;
-  }[];
-  } | null | undefined;
-
-  brackets_dict: {
-    [country_key: string]: Array<[number, number, number]>
-  } | null | undefined;
-
-};
+const REACT_APP_API_URL: string = "http://localhost:8080";
+//const REACT_APP_API_URL: string = "https://taxes-compare.com";
 
 const App: React.FC = () => {
-  const max_allowable_income: number = 1e9;
+
+  // Constants
+  const max_allowable_income: number = 100e6;
+
+  // State
   const [loading, setLoading] = useState(false);
   const [incomeError, setIncomeError] = useState<string | null>(null);
   const [maxIncomeError, setMaxIncomeError] = useState<string | null>(null);
@@ -62,21 +34,43 @@ const App: React.FC = () => {
     income: 0,
     showBreakevenPoints: false,
     max_income: 500000,
+    countries: countries,
   });
-  const [currency, setCurrency] = useState<string>("Local Currency");
- const handleAddCountry = (country: string) => {
-    setCountries((prev) => [...prev, country]);
+  const [currency, setCurrency] = useState<string | null>(null);
+
+
+  // Handlers
+  const handleAddCountry = (country: string) => {
+    setCountries((prev) => {
+      const updatedCountries = [...prev, country];
+      setGlobalOptions((prevOptions) => ({
+        ...prevOptions,
+        countries: updatedCountries,
+      }));
+      return updatedCountries;
+    });
   };
 
   const handleRemoveCountry = (country: string) => {
-    setCountries((prev) => prev.filter(c => c !== country));
+    setCountries((prev) => {
+      const updatedCountries = prev.filter((c) => c !== country);
+      setGlobalOptions((prevOptions) => ({
+        ...prevOptions,
+        countries: updatedCountries,
+      }));
+      return updatedCountries;
+    });
   };
+
   const handleSelectCurrency = (newCurrency: string) => {
     setCurrency(newCurrency);
   };
+
   const handleGlobalOptionsChange = (options: Partial<GlobalOptions>) => {
+
     const updatedOptions = { ...globalOptions, ...options };
-    if (updatedOptions.income !== undefined && (updatedOptions.income === "" || updatedOptions.income <= updatedOptions.max_income)) {
+
+    if (updatedOptions.income !== undefined && (updatedOptions.income === null || updatedOptions.income <= updatedOptions.max_income)) {
       setGlobalOptions(updatedOptions);
       setIncomeError(null);
       setMaxIncomeError(null)
@@ -85,76 +79,99 @@ const App: React.FC = () => {
         `Income (currently set to: ${updatedOptions.income}) must be less than the maximum income (currently set to ${updatedOptions.max_income})`
       );
     }
+
     if (updatedOptions.max_income === undefined || updatedOptions.max_income === 0) {
       setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) gives the size of the x axis and must be greater than 0 (reccomended to set to something between 100k - 1 mil)`)
     }
+
     const max_income_num: number = +updatedOptions.max_income;
+
     if (max_income_num > max_allowable_income) {
-      setMaxIncomeError(`Max income (currently set to: ${max_income_num}) is too large. Must be less than 1*10^7)`)
+      setMaxIncomeError(`Max income (currently set to: ${max_income_num}) is too large. Must be less than ${max_allowable_income})`)
     }
+
     setGlobalOptions(updatedOptions);
+
   };
+
+  // Handle the compute, doing validation
   const handleCompute = async () => {
+
     setLoading(true)
+
     const { income, max_income } = globalOptions;
+
     if (max_income === 0) {
       setLoading(false);
       alert(`Max income should be greater than 0`);
       return;
     }
+
     if (income > max_income) {
       setLoading(false);
       alert(`Income cannot exceed ${max_income}`);
       return;
     }
+
     if (+max_income > max_allowable_income) {
       setLoading(false);
       alert(`Max income cannot be greater than ${max_allowable_income}`);
       return;
     }
+
     if (countries.length === 0) {
       setLoading(false);
       alert("Add at least one country before computing taxes")
       return;
     }
+
     const requestData = {
       countries: countries,
-      globalOptions: { ...globalOptions, income: globalOptions.income === '' ? 0 : globalOptions.income},
+      income: globalOptions.income === null ? 0 : globalOptions.income,
+      max_income: globalOptions.max_income === '' ? max_income : globalOptions.max_income,
+      show_break_even: globalOptions.showBreakevenPoints,
+      normalizing_currency: currency
     };
+
     const hostname: string = REACT_APP_API_URL;
     if (!hostname) {
       return
     }
+
     const backendEndpoint: string = `${hostname}/process`;
+
     try {
       setLoading(true);
       const responseData = await axios.post(backendEndpoint, requestData, {
         headers: {
           'Content-Type': 'application/json'
-        }
-      });
+      }});
       setresponseData(responseData.data);
       } catch (error) {
     } finally {
       setLoading(false)
     }
   };
+
+  // Effects
   useEffect(() => {
     if (responseData && plotElementRef.current) {
       plotElementRef.current?.scrollIntoView({behavior: 'smooth'});
     }
   }, [responseData]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter') {
-        handleCompute();
-      }
+      if (event.key === 'Enter') {handleCompute();}
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleCompute]);
+
+
+  // Rendering
   return (
     <div className="App">
         <Header />
@@ -177,28 +194,53 @@ const App: React.FC = () => {
       />
       {loading ? (
         <div className="loading-container">
-          <RingLoader cssOverride={{display: 'flex', justifyContent: 'center', alignItems: 'center'}} size={150} color={"#36D7B7"} loading={loading} />
+          <RingLoader cssOverride={{display: 'flex', justifyContent: 'center', alignItems: 'center'}} size={150} color={"#36D7B7"} loading={loading}/>
         </div>
       ) : (
         <>
       {responseData && (
             <div style={{ marginTop: '10px'}} ref={plotElementRef}>
-            <PlotSwitcher  plotAData={responseData.plot_rates.data} plotALayout={responseData.plot_rates.layout} plotBData={responseData.plot_amounts.data} plotBLayout={responseData.plot_amounts.layout}/>
-          </div>
+            <PlotSwitcher data={responseData} income={globalOptions.income} currency={currency || "Local Currency"}/>
+            </div>
         )}
         </>
       )}
       <br></br>
-      <div id="thing">
-      <TaxData rawData={responseData?.brackets_dict}/>
-      <IncomeData rawData={responseData?.income_dict} income={+globalOptions.income} />
-      <BreakevenData rawData={responseData?.breakeven_dict} countries={countries}/>
+      <div id="brackettables">
+       {responseData && (
+        <div style={{ marginTop: '10px' }}>
+          <TaxData data={responseData}/>
+        </div>
+        ) 
+        }
+      </div>
+      <div id="incometables">
+       {responseData && (
+        <div style={{ marginTop: '10px' }}>
+          <IncomeData income={globalOptions.income} data={responseData} currency={currency}/>
+        </div>
+        )
+        }
+      </div>
+      <div id="breakeventables">
+       {responseData && (
+        <div style={{ marginTop: '10px' }}>
+          <BreakevenData data={responseData} currency={currency}/>
+        </div>
+        )
+        }
+      </div>
+      <div id="exchangeratetables">
+       {responseData && (
+        <div style={{ marginTop: '10px' }}>
+          <ExchangeRateData data={responseData} currency={currency}/>
+        </div>
+        ) 
+        }
       </div>
       </main>
     </div>
   );
 };
 
-
 export default App;
-
