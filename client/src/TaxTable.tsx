@@ -1,20 +1,17 @@
 import './TaxTable.css';
 import React, { useState, useRef, useEffect} from 'react';
+import { BackEndResponse } from './types';
 
 interface TaxDataProps {
-    rawData: {
-      [country_key: string]: Array<[number, number, number | null]>;
-    } | null | undefined;
+    data: BackEndResponse;
   }
 
-
-const TaxData: React.FC<TaxDataProps> = ({rawData}) => {
+const TaxData: React.FC<TaxDataProps> = ({ data }) => {
     const [isFolded, setIsFolded] = useState(true);
     const tableRef = useRef<HTMLTableElement>(null);
     const toggleFold = () => {
         setIsFolded(!isFolded);
     };
-
 
     useEffect(() => {
         if (!isFolded && tableRef.current) {
@@ -22,24 +19,15 @@ const TaxData: React.FC<TaxDataProps> = ({rawData}) => {
         }
       }, [isFolded]);
 
-    if (!rawData) {
-        return null;
-    }
-
-    if (rawData === undefined) {
-        return null;
-    }
-
-
     return (
         <div>
           <button onClick={toggleFold}>
-            {isFolded ? 'Show tax brackets (in local currency)' : 'Hide tax brackets (in local currency)'}
+            {isFolded ? `Show tax brackets (local currency)` : `Hide tax brackets (local currency)`}
           </button>
     
           {!isFolded && (
             <div className="tax-data-container">
-              {Object.entries(rawData).map(([country, data]) => (
+              {Object.entries(data.country_specific_data).map(([country, tax_data]) => (
                 <div key={country} className="country-container">
                   <div className="sticky-header-container">
                     <div className="country-name">{country}</div>
@@ -53,13 +41,16 @@ const TaxData: React.FC<TaxDataProps> = ({rawData}) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.map(([rate, from, to], index) => (
+                          {tax_data.tax_brackets.map((bracket, index) => {
+                          const from = index > 0 ? tax_data.tax_brackets[index - 1].income_limit: 0;
+                          const to = bracket.income_limit !== null ? bracket.income_limit : '∞';
+                          return (
                             <tr key={index}>
-                              <td>{(+rate.toFixed(5)*100).toFixed(0)}</td>
+                              <td>{(+bracket.marginal_rate.toFixed(5)*100).toFixed(0)}</td>
                               <td>{from}</td>
-                              <td>{to !== null ? to : '∞'}</td>
+                              <td>{to}</td>
                             </tr>
-                          ))}
+                          )})}
                         </tbody>
                       </table>
                     </div>
