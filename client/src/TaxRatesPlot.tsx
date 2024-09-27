@@ -129,11 +129,11 @@ const TaxRatesPlot: React.FC<TaxRatesPlotProps> = ({ data }) => {
         data={plotData}
         layout={{
           title: {
-            text: `<b>Effective Tax Rates</b> (%) (using ${currency})`,
+            text: `<b>Effective Tax Rates</b> (%)<br>(in ${currency || "Local Currency"})`,
             x: 0.5,
             xanchor: 'center',
           },
-          xaxis: { title: `<b>Annual Taxable Income</b> (${currency})`, gridcolor: 'rgba(255, 255, 255, 0)', range: [0, undefined] },
+          xaxis: { title: `<b>Annual Taxable Income</b> (${currency || "Local Currency"})`, gridcolor: 'rgba(255, 255, 255, 0)', range: [0, undefined] },
           yaxis: { title: '<b>Effective Tax Rate</b> (%)', tickformat: '.0%', gridcolor: 'rgba(255, 255, 255, 0)', range: [0, undefined] },
           showlegend: true,
           shapes: shapes?.flat() as Partial<Plotly.Shape>[],

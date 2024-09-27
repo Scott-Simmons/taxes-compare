@@ -32,7 +32,7 @@ const ExchangeRateTable: React.FC<ExchangeRateDataProps> = ({ data, currency }) 
 
 
   // Will not be null if currency is null, but need null handling to keep ts happy
-  dataArray.sort((a, b) => (a.taxInfo.exchange_rate || 0) - (b.taxInfo.exchange_rate || 0));
+  dataArray.sort((a, b) => (b.taxInfo.exchange_rate || 0) - (a.taxInfo.exchange_rate || 0));
 
   const rankedDataArray = dataArray.map((entry, index) => ({...entry, rank: index + 1}))
 

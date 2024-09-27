@@ -39,8 +39,7 @@ const BreakevenData: React.FC<BreakevenProps> = ({ data, currency }) => {
           <td>{amounts[index].toFixed(0)}</td>
         </tr>
       ));
-    }
-  );
+    });
 
   const isEmptyArray = (arr: Array<Array<any>>): arr is any[][] => {
     return (
@@ -51,7 +50,7 @@ const BreakevenData: React.FC<BreakevenProps> = ({ data, currency }) => {
   return (
     <div>
       <button onClick={toggleFold}>
-        {isFolded ? `Show breakeven incomes for country combinations ${currency}` : `Hide breakeven points for country combinations ${currency}`}
+        {isFolded ? `Show breakeven incomes for country combinations (${currency || "Local Currency"})` : `Hide breakeven points for country combinations ${currency}`}
       </button>
 
       {!isFolded && (
