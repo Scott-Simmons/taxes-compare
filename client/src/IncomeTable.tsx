@@ -51,7 +51,7 @@ const IncomeData: React.FC<IncomeDataProps> = ({ data, income, currency }) => {
   return (
     <div>
          <button onClick={toggleFold}>
-        {isFolded ? `Show taxation by country when income is ${income}` : `Hide taxation by country when local currency income is ${income}`}
+        {isFolded ? `Show taxation by country when income is ${income}` : `Hide taxation by country when income is ${income}`}
       </button>
 
     {!isFolded && (
@@ -60,13 +60,13 @@ const IncomeData: React.FC<IncomeDataProps> = ({ data, income, currency }) => {
       <table ref={tableRef} className="income-data-table">
         <thead>
         <tr>
-          <th colSpan={5}>{`Taxation when income is ${income} (${currency})`}:</th>
+          <th colSpan={5}>{`Taxation when income is ${income} (${currency || "Local Currency"})`}:</th>
         </tr>
         <tr>
           <th>Country</th>
           <th>Rank</th>
           <th>Taxation %</th>
-          <th>Taxation Amount ({currency})</th>
+          <th>Taxation Amount ({currency || "Local Currency"})</th>
           <th>{`Amount (from ${income}) left over`}</th>
         </tr>
         </thead>
