@@ -1,10 +1,8 @@
 use crate::controller::handle_request::TaxPlotDataResponse;
 use crate::core::points::marginal_rate_knot::MarginalRateKnot;
 use crate::core::schedules::marginal_schedule::MarginalIncomeTaxRateSchedule;
-use crate::exchange_rates::{
-    exchange_rate_adjustment, fetch_exchange_rates, get_currency_country_mapping,
-};
-use crate::utils::{compute_effective_tax_rates, generate_range};
+use crate::exchange_rates::{fetch_exchange_rates, get_currency_country_mapping};
+use crate::utils::{adjust_exchange_rate_schedule, compute_effective_tax_rates, generate_range};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -37,6 +35,7 @@ impl TaxesConfig {
         exchange_rate_config: &Option<HashMap<String, f32>>,
         country_currency_mapping: &HashMap<&'static str, &'static str>,
     ) -> BreakevenData {
+        // TODO: Handle exchange rates in a cleaner way
         let exchange_rate_one = match exchange_rate_config {
             Some(exchange_rates) => exchange_rates[country_currency_mapping[country_one]],
             None => 1.0,
@@ -45,16 +44,18 @@ impl TaxesConfig {
             Some(exchange_rates) => exchange_rates[country_currency_mapping[country_two]],
             None => 1.0,
         };
-        let schedule_one = &self
-            .get_country(country_one)
-            .unwrap()
-            .to_income_amount_schedule(max_income_to_consider)
-            .exchange_rate_adjustment(Some(exchange_rate_one));
-        let schedule_two = &self
-            .get_country(country_two)
-            .unwrap()
-            .to_income_amount_schedule(max_income_to_consider)
-            .exchange_rate_adjustment(Some(exchange_rate_two));
+        let schedule_one = adjust_exchange_rate_schedule(
+            &self,
+            &country_one,
+            &Some(exchange_rate_one),
+            max_income_to_consider,
+        );
+        let schedule_two = adjust_exchange_rate_schedule(
+            &self,
+            &country_two,
+            &Some(exchange_rate_two),
+            max_income_to_consider,
+        );
         let breakevens = schedule_one.compute_breakeven_taxes(&schedule_two);
         let (breakeven_incomes, breakeven_amounts): (Vec<f32>, Vec<f32>) = breakevens
             .par_iter()
@@ -77,23 +78,21 @@ impl TaxesConfig {
     fn process_country_taxes(
         &self,
         country: &str,
+        currency: &Option<String>, // kind of a hack
         incomes_to_compute: &[f32],
         max_income: f32,
         specific_income: Option<f32>,
-        exchange_rate_config: &Option<HashMap<String, f32>>,
+        exchange_rate_config: &Option<HashMap<String, f32>>, // feels like a hack having base
+        // currency there too.
         country_currency_mapping: &HashMap<&'static str, &'static str>,
     ) -> TaxData {
         let exchange_rate = match exchange_rate_config {
             Some(exchange_rates) => exchange_rates[country_currency_mapping[country]],
             None => 1.0,
         };
-        let schedule = &self
-            .get_country(&country)
-            .unwrap()
-            .to_income_amount_schedule(max_income)
-            .exchange_rate_adjustment(Some(exchange_rate));
-        let specific_income = specific_income.and_then(|income| Some(income * exchange_rate));
-        let incomes_to_compute = exchange_rate_adjustment(&incomes_to_compute, exchange_rate);
+        // TODO: We can move this to somewhere else not utils
+        let schedule =
+            adjust_exchange_rate_schedule(&self, &country, &Some(exchange_rate), max_income);
         let tax_amounts = match schedule.compute_income_taxes(&incomes_to_compute) {
             Ok(value) => value,
             Err(err) => panic!("Error {:?}", err),
@@ -103,7 +102,13 @@ impl TaxesConfig {
         // Get the specific income
         let specific_tax_amount = schedule.compute_specific_income_tax(specific_income);
         let specific_tax_rate = specific_tax_amount.and_then(|tax_amount| {
-            specific_income.map(|specific_income| tax_amount / specific_income)
+            specific_income.map(|specific_income| {
+                if specific_income != 0.0 {
+                    tax_amount / specific_income
+                } else {
+                    0.0
+                }
+            })
         });
 
         TaxData {
@@ -114,6 +119,7 @@ impl TaxesConfig {
             specific_income,
             specific_tax_amount,
             specific_tax_rate,
+            currency: currency.clone(),
             incomes: incomes_to_compute.to_vec(),
             tax_brackets: self.get_country(country).unwrap().schedule().to_vec(),
             exchange_rate: if exchange_rate == 1.0 {
@@ -143,6 +149,7 @@ impl TaxesConfig {
             .map(|country| {
                 let tax_data = self.process_country_taxes(
                     &country,
+                    &req.normalizing_currency,
                     &incomes_to_compute,
                     req.max_income,
                     req.income,
@@ -207,6 +214,7 @@ pub struct TaxData {
     pub tax_brackets: Vec<MarginalRateKnot>,
     pub exchange_rate: Option<f32>,
     pub specific_income: Option<f32>,
+    pub currency: Option<String>,
 }
 
 #[cfg(test)]

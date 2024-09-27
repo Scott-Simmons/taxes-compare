@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use serde::Deserialize;
 
 /// Schedule representing how tax amounts change at each income threshold.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct IncomeTaxAmountSchedule {
     /// A sorted vector of points where the slope of the tax amount changes.
     schedule: Vec<IncomeTaxKnot>,
@@ -21,24 +21,6 @@ impl IncomeTaxAmountSchedule {
 
     pub fn schedule(&self) -> &Vec<IncomeTaxKnot> {
         &self.schedule
-    }
-
-    /// Adjust the tax amount schedule according to an exchange rate
-    pub fn exchange_rate_adjustment(self, exchange_rate: Option<f32>) -> Self {
-        match exchange_rate {
-            Some(rate) => IncomeTaxAmountSchedule::new(
-                self.schedule
-                    .into_iter()
-                    .map(|knot| {
-                        IncomeTaxKnot::new(
-                            knot.income_limit() * rate,
-                            knot.income_tax_amount() * rate,
-                        )
-                    })
-                    .collect(),
-            ),
-            None => self,
-        }
     }
 
     /// Compute income tax amounts for a range of incomes
@@ -105,7 +87,13 @@ impl IncomeTaxAmountSchedule {
     /// appropriate segment.
     pub fn compute_income_taxes(&self, incomes: &[f32]) -> Result<Vec<f32>, TaxError> {
         if incomes.last().unwrap() > &self.schedule.last().unwrap().income_limit() {
-            return Err(TaxError::IncomeOutOfBounds);
+            return Err(TaxError::IncomeOutOfBounds {
+                income: *incomes.last().unwrap(),
+                bounds: (
+                    *incomes.last().unwrap(),
+                    self.schedule.last().unwrap().income_limit(),
+                ),
+            });
         }
         // Choose not to parallelise the segments because the number of segments are usually low.
         let grouped_income_values = group_incomes_by_segment(&incomes, &self.schedule);
@@ -204,7 +192,13 @@ mod tests {
         // it should throw error because income is out of bounds w.r.t. the tax schedule
         let invalid_incomes = vec![500.0, 1500.0, 1700.0, 2500.0, 3500.0];
         let invalid_result = schedule.compute_income_taxes(&invalid_incomes);
-        assert_eq!(invalid_result.unwrap_err(), TaxError::IncomeOutOfBounds);
+        assert_eq!(
+            invalid_result.unwrap_err(),
+            TaxError::IncomeOutOfBounds {
+                income: 3500.0,
+                bounds: (3500.0, 3000.0)
+            }
+        );
     }
     #[test]
     fn test_get_tax_amounts_from_tax_amounts_schedule() {
