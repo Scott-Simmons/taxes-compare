@@ -18,11 +18,17 @@ impl MarginalIncomeTaxRateSchedule {
         &self.schedule
     }
 
+    pub fn new(marginal_rate_knots: Vec<MarginalRateKnot>) -> Self {
+        Self {
+            schedule: marginal_rate_knots,
+        }
+    }
+
     /// Get tax amount from the marginal rates schedule.
     /// Dot((r_i - r_{i-1}), max(0, x - b_{i-1}) where (b_0, r_0) = (0,0)
     fn get_tax_amount_from_marginal_rates_knots(&self, income: f32) -> Result<f32, TaxError> {
         if income < 0.0 {
-            return Err(TaxError::NegativeIncome);
+            return Err(TaxError::NegativeIncome(income));
         }
         let marginal_tax_rates_knots = &self.schedule;
         let mut tax_amount = 0.0;
@@ -43,6 +49,25 @@ impl MarginalIncomeTaxRateSchedule {
         Ok(tax_amount)
     }
 
+    /// Adjust the marginal amount schedule according to an exchange rate
+    pub fn exchange_rate_adjustment(&self, exchange_rate: &Option<f32>) -> Self {
+        match exchange_rate {
+            Some(rate) => MarginalIncomeTaxRateSchedule::new(
+                self.schedule
+                    .clone()
+                    .into_iter()
+                    .map(|knot| {
+                        MarginalRateKnot::new(
+                            knot.income_limit().map(|income| income * (1.0 / rate)),
+                            knot.marginal_rate(),
+                        )
+                    })
+                    .collect(),
+            ),
+            None => self.clone(),
+        }
+    }
+
     /// Convert to a representation that is better for efficient computation of taxes
     pub fn to_income_amount_schedule(
         &self,
@@ -51,7 +76,7 @@ impl MarginalIncomeTaxRateSchedule {
         let mut income_tax_knots = vec![IncomeTaxKnot::new(0.0, 0.0)];
         for (i, marginal_rate_knot) in self.schedule.iter().enumerate() {
             if i == self.schedule.len() - 1
-                || marginal_rate_knot.income_limit().unwrap() > max_income_to_consider
+                || marginal_rate_knot.income_limit().unwrap() >= max_income_to_consider
             {
                 break;
             }
@@ -84,9 +109,9 @@ mod tests {
     fn test_marginal_rates_schedule_to_income_tax_amount_schedule() {
         let schedule = MarginalIncomeTaxRateSchedule {
             schedule: vec![
-                MarginalRateKnot::new(10000.0, 0.1),
-                MarginalRateKnot::new(20000.0, 0.2),
-                MarginalRateKnot::new(f32::INFINITY, 0.3),
+                MarginalRateKnot::new(Some(10000.0), 0.1),
+                MarginalRateKnot::new(Some(20000.0), 0.2),
+                MarginalRateKnot::new(Some(f32::INFINITY), 0.3),
             ],
         };
         let max_income_to_consider = 100000.0;
@@ -109,15 +134,18 @@ mod tests {
         // Using example from wikipedia: https://en.wikipedia.org/wiki/Progressive_tax
         let schedule = MarginalIncomeTaxRateSchedule {
             schedule: vec![
-                MarginalRateKnot::new(10000.0, 0.1),
-                MarginalRateKnot::new(20000.0, 0.2),
-                MarginalRateKnot::new(f32::INFINITY, 0.3),
+                MarginalRateKnot::new(Some(10000.0), 0.1),
+                MarginalRateKnot::new(Some(20000.0), 0.2),
+                MarginalRateKnot::new(Some(f32::INFINITY), 0.3),
             ],
         };
         let result = schedule.get_tax_amount_from_marginal_rates_knots(25000.0);
         assert_eq!(result.unwrap(), 4500.0);
         let invalid_result = schedule.get_tax_amount_from_marginal_rates_knots(-25000.0);
-        assert_eq!(invalid_result.unwrap_err(), TaxError::NegativeIncome);
+        assert_eq!(
+            invalid_result.unwrap_err(),
+            TaxError::NegativeIncome(-25000.0)
+        );
         let zero_result = schedule.get_tax_amount_from_marginal_rates_knots(0.0);
         assert_eq!(zero_result.unwrap(), 0.0);
     }

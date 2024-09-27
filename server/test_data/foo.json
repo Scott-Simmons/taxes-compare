@@ -1,0 +1,12 @@
+{
+    "country_map": {
+        "Foo": {
+            "schedule": [
+                {"marginal_rate": 0.1, "income_limit": 100000},
+                {"marginal_rate": 0.2, "income_limit": 200000},
+                {"marginal_rate": 0.3, "income_limit": 300000},
+                {"marginal_rate": 0.4, "income_limit": null}
+            ]
+        }
+    }
+}

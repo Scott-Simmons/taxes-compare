@@ -29,9 +29,9 @@ where
 
 impl MarginalRateKnot {
     /// Example: IncomeTaxKnot::new(x,y)
-    pub fn new(income_limit: f32, marginal_rate: f32) -> Self {
+    pub fn new(income_limit: Option<f32>, marginal_rate: f32) -> Self {
         Self {
-            income_limit: Some(income_limit),
+            income_limit,
             marginal_rate,
         }
     }

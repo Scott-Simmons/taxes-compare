@@ -1,4 +1,6 @@
+use crate::controller::taxes_config;
 use crate::core::points::tax_amount::{IncomeTaxKnot, IncomeTaxPoint};
+use crate::core::schedules::amount_schedule::IncomeTaxAmountSchedule;
 use crate::core::segment::LinearPiecewiseSegment;
 use rayon::prelude::*;
 
@@ -11,6 +13,20 @@ pub fn generate_range(start: f32, stop: f32, step: f32) -> Vec<f32> {
         current += step;
     }
     values
+}
+
+/// Util for adjusting schedule by exchange rate
+pub fn adjust_exchange_rate_schedule(
+    tax_config: &taxes_config::TaxesConfig,
+    country: &str,
+    exchange_rate: &Option<f32>,
+    max_income_to_consider: f32,
+) -> IncomeTaxAmountSchedule {
+    tax_config
+        .get_country(&country)
+        .unwrap()
+        .exchange_rate_adjustment(&exchange_rate)
+        .to_income_amount_schedule(max_income_to_consider)
 }
 
 /// Util for testing that points are approx eq.
@@ -91,9 +107,107 @@ pub fn compute_effective_tax_rates(incomes: &[f32], income_tax_amounts: &[f32]) 
 #[cfg(test)]
 mod tests {
 
+    use crate::controller::taxes_config;
     use crate::core::points::tax_amount::IncomeTaxKnot;
+    use crate::core::schedules::amount_schedule::IncomeTaxAmountSchedule;
     use crate::core::segment::LinearPiecewiseSegment;
+    use crate::utils::adjust_exchange_rate_schedule;
     use crate::utils::group_incomes_by_segment;
+
+    #[test]
+    fn test_adjust_exchange_rate_schedule() {
+        let tax_config = taxes_config::TaxesConfig::new("test_data/foo.json");
+        let country = "Foo";
+        let max_income_to_consider = 390000.0;
+        let schedule_one =
+            adjust_exchange_rate_schedule(&tax_config, &country, &None, max_income_to_consider);
+        let schedule_two = adjust_exchange_rate_schedule(
+            &tax_config,
+            &country,
+            &Some(2.0),
+            max_income_to_consider,
+        );
+        let schedule_three = adjust_exchange_rate_schedule(
+            &tax_config,
+            &country,
+            &Some(1.0 / 2.0),
+            max_income_to_consider,
+        );
+
+        assert_eq!(
+            schedule_one,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(100000.0, 10000.0),
+                IncomeTaxKnot::new(200000.0, 30000.0),
+                IncomeTaxKnot::new(300000.0, 60000.0),
+                IncomeTaxKnot::new(390000.0, 96000.0)
+            ])
+        );
+        assert_eq!(
+            schedule_two,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(50000.0, 5000.0),
+                IncomeTaxKnot::new(100000.0, 15000.0),
+                IncomeTaxKnot::new(150000.0, 30000.0),
+                IncomeTaxKnot::new(390000.0, 126000.0)
+            ])
+        );
+        assert_eq!(
+            schedule_three,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(200000.0, 20000.0),
+                IncomeTaxKnot::new(390000.0, 58000.0)
+            ])
+        );
+
+        let max_income_to_consider = 400000.0;
+        let schedule_one =
+            adjust_exchange_rate_schedule(&tax_config, &country, &None, max_income_to_consider);
+        let schedule_two = adjust_exchange_rate_schedule(
+            &tax_config,
+            &country,
+            &Some(2.0),
+            max_income_to_consider,
+        );
+        let schedule_three = adjust_exchange_rate_schedule(
+            &tax_config,
+            &country,
+            &Some(1.0 / 2.0),
+            max_income_to_consider,
+        );
+
+        assert_eq!(
+            schedule_one,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(100000.0, 10000.0),
+                IncomeTaxKnot::new(200000.0, 30000.0),
+                IncomeTaxKnot::new(300000.0, 60000.0),
+                IncomeTaxKnot::new(400000.0, 100000.0)
+            ])
+        );
+        assert_eq!(
+            schedule_two,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(50000.0, 5000.0),
+                IncomeTaxKnot::new(100000.0, 15000.0),
+                IncomeTaxKnot::new(150000.0, 30000.0),
+                IncomeTaxKnot::new(400000.0, 130000.0)
+            ])
+        );
+        assert_eq!(
+            schedule_three,
+            IncomeTaxAmountSchedule::new(vec![
+                IncomeTaxKnot::new(0.0, 0.0),
+                IncomeTaxKnot::new(200000.0, 20000.0),
+                IncomeTaxKnot::new(400000.0, 60000.0)
+            ])
+        );
+    }
 
     #[test]
     fn test_group_incomes_by_segment() {
