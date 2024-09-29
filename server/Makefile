@@ -2,7 +2,7 @@ BINARY_NAME := taxes-compare
 IMAGE_NAME := taxes-compare
 APP_NAME := taxes-compare
 USERNAME := simmonsd99
-VERSION := 0.0.2
+VERSION := 0.0.3
 
 build:
 	docker build . -t $(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)

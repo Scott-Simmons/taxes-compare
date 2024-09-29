@@ -4,7 +4,7 @@ domain: localhost
 protcol: http
 port: 8080
 backend_port: 3000
-image: simmonsd99/taxes-compare:taxes-compare-webserver-0.0.2
+image: simmonsd99/taxes-compare:taxes-compare-webserver-0.0.3
 cpu: "100m"
 memory: "256Mi"
 namespace: taxes-compare
