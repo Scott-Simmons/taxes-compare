@@ -1,6 +1,6 @@
 ### Methodology (high level)
 
-The easiest way to get a feel a country's taxation settings is to visualise the policy as a curve, not as a table of marginal rates. This document shows how to do that.
+The easiest way to understand a country's taxation settings is to visualise its policy as a curve. This document shows how to do that.
 
 ##### Parsing
 
