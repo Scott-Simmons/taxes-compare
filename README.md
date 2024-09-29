@@ -4,8 +4,6 @@ The easiest way to understand personal income tax is see the whole curve. Averag
 
 This application gives the full picture on tax, all derived from the marginal rates of several countries.
 
-Available on: https://taxes-compare.com/
-
 Details on the solution [here](/server/methodology.md).
 
 ### Features
