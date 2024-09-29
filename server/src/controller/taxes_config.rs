@@ -18,7 +18,8 @@ pub struct TaxesConfig {
 }
 impl TaxesConfig {
     pub fn new(config_path: &str) -> TaxesConfig {
-        let file = fs::File::open(config_path).expect("File should open read only");
+        let file = fs::File::open(config_path)
+            .expect(format!("File should open read only, reading {}", config_path).as_str());
         let json: TaxesConfig = serde_json::from_reader(file).expect("JSON was not well formatted");
         json
     }
@@ -135,7 +136,8 @@ impl TaxesConfig {
         &self,
         req: &TaxPlotDataRequest,
     ) -> Result<TaxPlotDataResponse, String> {
-        let step = 10.0;
+        let step = if req.max_income < 1e6 {10.0} else {100.0}; // simple adaptive step size for
+        // speedup
         let min_income = 0.0;
         let incomes_to_compute = generate_range(min_income, req.max_income, step);
         let country_currency_mapping = get_currency_country_mapping();
