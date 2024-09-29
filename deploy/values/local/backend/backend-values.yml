@@ -1,0 +1,9 @@
+---
+replicaCount: 1
+domain: localhost
+protocol: http
+port: 3000
+image: simmonsd99/taxes-compare:taxes-compare-0.0.2
+cpu: "250m"
+memory: "256Mi"
+namespace: taxes-compare

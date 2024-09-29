@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+name: taxes-compare-webserver
+description: Webserver for taxes-compare
+type: application
+version: 0.0.1
+appVersion: "0.0.1"
