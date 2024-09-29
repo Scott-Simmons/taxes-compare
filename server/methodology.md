@@ -1,7 +1,6 @@
 ### Methodology (high level)
 
-
-The intended outcome is to be able to visualise a countries personal income taxes without discarding relevant information, and being able to compare between countries.
+The easiest way to get a feel a country's taxation settings is to visualise the policy as a curve, not as a table of marginal rates. This document shows how to do that.
 
 ##### Parsing
 
@@ -12,14 +11,14 @@ The intended outcome is to be able to visualise a countries personal income taxe
 
 Once the [tax amount schedules](#peicewise-linear-income-tax-curves) are obtained, it becomes simple to:
 
-1. Efficiently [compute the tax amounts](#peicewise-linear-income-tax-curves) for a given income, or a range of incomes.
-1. Efficiently [compute effective tax rates](#effective-tax-rates-curves) for a given income, or a range of incomes.
+1. Efficiently [compute the tax amounts](#peicewise-linear-income-tax-curves) for a given income, or for a range of incomes.
+1. Efficiently [compute effective tax rates](#effective-tax-rates-curves) for a given income, or for a range of incomes.
 3. Efficiently [compute breakeven points](#breakeven-points) for two or more different progressive tax rates schedules.
     
 
 #### Marginal Tax Rates curves
 
-We start with data that characterises marginal tax rates as a function of income. This feels like the most natural way to represent a progressive tax rate scheme. Storing the schemes in this way makes the configuration easy to maintain. Most countries represent their progressive tax schedules with marginal rates, [for example New Zealand](https://www.ird.govt.nz/income-tax/income-tax-for-individuals/tax-codes-and-tax-rates-for-individuals/tax-rates-for-individuals)
+We start with data that characterises marginal tax rates as a function of income. Storing the schemes in this way makes the configuration easy to maintain. Most countries represent their progressive tax schedules with marginal rates.
 
 Example scheme:
 ```python
@@ -50,7 +49,7 @@ plt.show()
 
 ![MarginalRates](./images/marginal_taxes.png)
 
-This scheme can be thought of as being characterised by several ordered knot points $(b_i, t_i)$ where $r_i$ is the marginal rate and $b_i$ is the upper limit to which that marginal rate applies to.
+This scheme can be thought of as being characterised by a collection of ordered knot points $(b_i, t_i)$ where $r_i$ is the marginal rate and $b_i$ is the upper limit to which that marginal rate applies to.
 
 The income tax amount $f(x; \vec{\mu})$ for a given level of income $x \in \mathbb{R}_{\geq 0}$ given a marginal tax scheme $\vec{\mu} = \{(b_1, r_1),(b_2, r_2),....(b_n, r_n)\}$ is given by:
 
@@ -60,7 +59,7 @@ $$ r_0 = 0, b_0 = 0 \;\;\forall\vec{\mu}$$
 
 Also note that $b_n$ will be unbounded i.e. $b_n = \infty$.
 
-This is a nice representation, but we can use a more efficient representation for computing a large number of values of $x$.
+This is a nice representation, but we can use a more efficient representation if we want to compute a large number of values of $x$.
 
 #### Peicewise Linear Income Tax Curves
 
@@ -112,7 +111,7 @@ plt.show()
 
 #### Effective tax rates curves
 
-It is beneficial to have a view of the effective tax rates i.e. the actual tax rate paid. Once the [tax amount schedule](#peicewise-linear-income-tax-curves) are obtained, the computation is simple.
+It is beneficial to have a view of the effective tax rates i.e. the actual tax rate paid. Once the [tax amount schedule](#peicewise-linear-income-tax-curves) is obtained, the computation is simple.
 
 $$h(x, \vec{\nu}, m) = \frac{g(x, \vec{\nu}, m)}{x}$$
 
@@ -131,10 +130,12 @@ plt.show()
 
 #### Exchange rates considerations
 
-When comparing tax rates, it may be desired to normalise the tax amounts into the same currency.
+When comparing tax rates, it is a good idea to normalise the tax amounts into the same currency.
 
 This becomes particularly obvious when comparing South Africa's tax scheme against other countries due to the large exchange rate differences.
 
+
+##### Demonstration of extreme exchange rate distortions (South Africa)
 
 ![no-adjust](./images/no-adjust.png)
 
@@ -142,15 +143,31 @@ This becomes particularly obvious when comparing South Africa's tax scheme again
 
 In this project, a single transformation of the tax schedule is applied, based on the most recent available exchange rates.
 
-Future iterations of this project could model the exchange rate as a random variable. Confidence bands can be applied to the tax curves.
+Future iterations of this project could model the exchange rate as a random variable. Confidence bands can be applied to the tax curves in order to form a more accurate view when comparing taxes across different countries.
 
-#### Adaptive step size (not implemented)
+#### Adaptive step sizing for large income values.
 
 There is a need to discretise the income range using a step size. The only reason for this is that the effective tax rates curve is nonlinear (see [description](#effective-tax-rates-curves)).
 
-Despite the nonlinearities in the effective tax rates curves, at high values of income, the curve moves into steady state as successive effective tax rate values stabilise (the highest marginal tax rates begin to dominate assymptotically).
+Despite the nonlinearities in the effective tax rates curves, at high values of income, the curve moves into steady state, whereby successive effective tax rate values at each income step stabilise (i.e. the highest marginal tax rates begin to dominate assymptotically as a higher proportion of income lies in the final tax bracket).
 
-Because of this structure, it is reasonable be appropriate to use adaptive step sizing to exploit the converging behaviour $x \rightarrow \infty$ by increasing the step size dynamically.
+Because of this structure, it is reasonable to use adaptive step sizing to exploit the converging behaviour $x \rightarrow \infty$ by increasing the step size dynamically.
+
+Currently, the implementation uses a crude rule for changing the step size. For incomes $x_i$ the step size $x_{i-1} - x_{i} = \delta x_i$
+
+$$
+\Delta x = 
+\begin{cases} 
+\epsilon & \text{if } x_i < T \\ 
+\Epsilon & \text{if } x_i \geq T 
+\end{cases}
+$$
+
+$$\Epsilon > \epsilon$$
+
+(Much better strategies exist, for example, estimating the curvature every nth point, and using a measure of curvature in the thresholding decision). This can be implemented in a future iteration.
+
+##### Demonstration of assymptotic behaviour at different scales
 
 ![Small](./images/small_scale.png)
 
