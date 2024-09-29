@@ -28,3 +28,5 @@ export interface BackEndResponse {
     }
   };
 };
+
+export type ComputeButtonClickHandler = () => Promise<void>;

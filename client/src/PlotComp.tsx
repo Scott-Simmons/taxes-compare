@@ -10,7 +10,7 @@ interface PlotSwitcherProps {
   currency: string;
 }
 
-const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data, income, currency }) => {
+const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data }) => {
   const [isDollarActive, setIsDollarActive] = useState(true);
 
   const toggleSwitch = () => {

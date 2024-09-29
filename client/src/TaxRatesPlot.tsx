@@ -13,7 +13,7 @@ const TaxRatesPlot: React.FC<TaxRatesPlotProps> = ({ data }) => {
   const currency = data.country_specific_data[Object.keys(data.country_specific_data)[0]].currency;
 
   // Main plot data
-  const chartData = Object.entries(data.country_specific_data).map(([countryKey, countryData]) => ({
+  const chartData: Plotly.Data[] = Object.entries(data.country_specific_data).map(([countryKey, countryData]) => ({
     x: countryData.incomes,
     y: countryData.effective_tax_rates,
     mode: 'lines',
@@ -21,8 +21,8 @@ const TaxRatesPlot: React.FC<TaxRatesPlotProps> = ({ data }) => {
   }));
 
   // Breakeven data
-  let shapes: Partial<Plotly.Shape>[] = [];
-  let scatterData: any[] = [];
+  const shapes: Partial<Plotly.Shape>[] = [];
+  const scatterData: Plotly.Data[] = [];
   if (data.country_comb_data) {
     Object.entries(data.country_comb_data).flatMap(([country_comb_key, pointsData]) => {
       const incomes = pointsData.breakeven_incomes;
