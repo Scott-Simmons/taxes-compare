@@ -21,8 +21,8 @@ const TaxAmountsPlot: React.FC<TaxAmountsPlotProps> = ({ data }) => {
   }));
 
   // Breakeven data
-  let shapes: Partial<Plotly.Shape>[] = [];
-  let scatterData: any[] = [];
+  const shapes: Partial<Plotly.Shape>[] = [];
+  const scatterData: Plotly.Data[] = [];
   if (data.country_comb_data) {
     Object.entries(data.country_comb_data).flatMap(([country_comb_key, pointsData]) => {
       const incomes = pointsData.breakeven_incomes;

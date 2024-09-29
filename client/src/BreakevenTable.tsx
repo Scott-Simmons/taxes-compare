@@ -41,7 +41,7 @@ const BreakevenData: React.FC<BreakevenProps> = ({ data, currency }) => {
       ));
     });
 
-  const isEmptyArray = (arr: Array<Array<any>>): arr is any[][] => {
+  const isEmptyArray = (arr: JSX.Element[][]): arr is JSX.Element[][] => {
     return (
       (Array.isArray(arr) && arr.length > 0 && arr.every((innerArray) => Array.isArray(innerArray) && innerArray.length === 0))
     );

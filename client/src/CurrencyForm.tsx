@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './CurrencyForm.css'; // Ensure you have a CSS file for styles
+import './CurrencyForm.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -22,6 +22,9 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
     { value: 'EUR', label: 'Euro (EUR)' },
     { value: 'GBP', label: 'British Pound (GBP)' },
     { value: 'USD', label: 'US Dollar (USD)' },
+    { value: 'SGD', label: 'Singapore Dollar (SGD)' },
+    { value: 'ZAR', label: 'South African Rand (ZAR)' },
+    { value: 'NOK', label: 'Norwegian Krone (NOK)' },
   ];
 
   useEffect(() => {

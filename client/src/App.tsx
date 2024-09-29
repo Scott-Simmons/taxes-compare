@@ -13,10 +13,12 @@ import IncomeData from './IncomeTable';
 import ExchangeRateData from './ExchangeRateTable';
 import BreakevenData from './BreakevenTable';
 import { BackEndResponse } from './types';
+import { useCallback } from 'react'
 
-// TODO: This should be passed in as an env var
-const REACT_APP_API_URL: string = "http://localhost:8080";
-//const REACT_APP_API_URL: string = "https://taxes-compare.com";
+const REACT_APP_API_URL: string = `${process.env.PROTOCOL || "http"}://${process.env.HOST || "localhost"}:${process.env.BACKEND_PORT || 3000}`;
+
+console.log("THING");
+console.log(REACT_APP_API_URL);
 
 const App: React.FC = () => {
 
@@ -95,7 +97,7 @@ const App: React.FC = () => {
   };
 
   // Handle the compute, doing validation
-  const handleCompute = async () => {
+  const handleCompute = useCallback(async () => {
 
     setLoading(true)
 
@@ -128,7 +130,7 @@ const App: React.FC = () => {
     const requestData = {
       countries: countries,
       income: globalOptions.income === null ? 0 : globalOptions.income,
-      max_income: globalOptions.max_income === '' ? max_income : globalOptions.max_income,
+      max_income: globalOptions.max_income === null ? max_income : globalOptions.max_income,
       show_break_even: globalOptions.showBreakevenPoints,
       normalizing_currency: currency
     };
@@ -142,16 +144,20 @@ const App: React.FC = () => {
 
     try {
       setLoading(true);
+      console.log("YOOO");
+      console.log(requestData);
+      console.log(backendEndpoint);
       const responseData = await axios.post(backendEndpoint, requestData, {
         headers: {
           'Content-Type': 'application/json'
       }});
       setresponseData(responseData.data);
-      } catch (error) {
+      } catch {
+        throw new Error("Issue with request")
     } finally {
       setLoading(false)
     }
-  };
+  }, [countries, currency, globalOptions]);
 
   // Effects
   useEffect(() => {

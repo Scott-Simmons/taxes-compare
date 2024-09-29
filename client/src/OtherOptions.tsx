@@ -2,11 +2,12 @@ import React, {useState} from 'react';
 import './OtherOptions.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { ComputeButtonClickHandler } from "./types"
 
 export interface GlobalOptions {
   income: number;
   showBreakevenPoints: boolean;
-  max_income: number | string;
+  max_income: number;
   countries: string[];
 }
 
@@ -15,7 +16,7 @@ interface GlobalOptionsFormProps {
   onGlobalOptionsChange: (options: Partial<GlobalOptions>) => void;
   incomeError: string | null;
   maxIncomeError: string | null;
-  onComputeButtonClick: any;
+  onComputeButtonClick: ComputeButtonClickHandler;
 }
 
 const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
@@ -25,7 +26,7 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
   maxIncomeError,
   onComputeButtonClick,
 }) => {
-  const [incomeInfoVisible, _] = useState(false);
+  const [incomeInfoVisible] = useState(false);
 
   return (
     <div className="global-options-form">
