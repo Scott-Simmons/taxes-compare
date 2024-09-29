@@ -1,0 +1,8 @@
+---
+replicaCount: 1
+domain: <domain>
+port: <port>
+image: <image>
+cpu: <cpu>
+memory: <memory>
+backend_port: <port>

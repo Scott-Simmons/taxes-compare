@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+name: taxes-compare
+description: Backend for taxes-compare
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

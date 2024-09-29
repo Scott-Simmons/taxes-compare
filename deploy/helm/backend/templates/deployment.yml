@@ -1,0 +1,39 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: "{{ .Release.Name }}"
+  name: "{{ .Release.Name }}"
+  namespace: "{{ .Values.namespace }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: "{{ .Release.Name }}"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Release.Name }}"
+    spec:
+      containers:
+        - image: "{{ .Values.image }}"
+          name: "{{ .Release.Name }}"
+          ports:
+            - containerPort: {{ .Values.port }}
+          resources:
+            limits:
+              cpu: "{{ .Values.cpu }}"
+              memory: "{{ .Values.memory }}"
+            requests:
+              cpu: "{{ .Values.cpu }}"
+              memory: "{{ .Values.memory }}"
+          env:
+            - name: PORT
+              value: "{{ .Values.port }}"
