@@ -20,9 +20,9 @@ Details on the solution [here](/server/methodology.md).
 
 ### App Components
 
-- [Frontend](/client/README.md)
-- [Backend](/server/README.md)
-- [Infrastructure](/deploy/README.md)
+- [Frontend](/client/)
+- [Backend](/server/)
+- [Infrastructure](/deploy/)
 
 Note: data for each countries tax schedules are stored [in the backend as a config file](https://github.com/Scott-Simmons/taxes-compare/blob/93868822405f519328868a45673f23643f3fb76b/server/assets/taxes.json). This data will eventually go stale if this repository is not maintained.
 
