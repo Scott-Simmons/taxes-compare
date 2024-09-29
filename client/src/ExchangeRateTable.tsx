@@ -3,11 +3,11 @@ import { BackEndResponse } from './types';
 
 interface ExchangeRateDataProps {
   data: BackEndResponse;
-  currency: string | null;
 }
 
-const ExchangeRateTable: React.FC<ExchangeRateDataProps> = ({ data, currency }) => {
+const ExchangeRateTable: React.FC<ExchangeRateDataProps> = ({ data }) => {
 
+    const currency: string | null = data.country_specific_data[Object.keys(data.country_specific_data)[0]].currency;
     const tableRef = useRef<HTMLTableElement>(null);
 
     const [isFolded, setIsFolded] = useState(true);
