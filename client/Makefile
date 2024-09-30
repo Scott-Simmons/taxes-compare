@@ -1,7 +1,7 @@
 IMAGE_NAME := taxes-compare-webserver
 APP_NAME := taxes-compare
 USERNAME := simmonsd99
-VERSION := 0.0.4-local
+VERSION := 0.0.6
 
 install-local:
 	npm install

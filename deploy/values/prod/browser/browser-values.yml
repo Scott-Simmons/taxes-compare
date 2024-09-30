@@ -1,0 +1,10 @@
+---
+replicaCount: 1
+domain: taxes-compare.com
+protcol: https
+port: 443
+backend_port: 3000
+image: simmonsd99/taxes-compare:taxes-compare-webserver-0.0.6
+cpu: "100m"
+memory: "256Mi"
+namespace: taxes-compare
