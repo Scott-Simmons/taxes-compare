@@ -17,9 +17,6 @@ import { useCallback } from 'react'
 
 const REACT_APP_API_URL: string = `${process.env.PROTOCOL || "http"}://${process.env.HOST || "localhost"}:${process.env.BACKEND_PORT || 3000}`;
 
-console.log("THING");
-console.log(REACT_APP_API_URL);
-
 const App: React.FC = () => {
 
   // Constants
@@ -144,9 +141,6 @@ const App: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log("YOOO");
-      console.log(requestData);
-      console.log(backendEndpoint);
       const responseData = await axios.post(backendEndpoint, requestData, {
         headers: {
           'Content-Type': 'application/json'
