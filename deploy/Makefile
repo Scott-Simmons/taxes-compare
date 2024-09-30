@@ -5,8 +5,8 @@ upgrade:
 	helm upgrade frontend-release ./helm/browser/ -f values/$(ENV)/browser/browser-values.yml
 
 install:
-	helm install backend-release ./helm/backend/ -f values/local/backend/backend-values.yml
-	helm install frontend-release ./helm/browser/ -f values/local/browser/browser-values.yml
+	helm install backend-release ./helm/backend/ -f values/$(ENV)/backend/backend-values.yml
+	helm install frontend-release ./helm/browser/ -f values/$(ENV)/browser/browser-values.yml
 
 init-ingress:
 	helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
