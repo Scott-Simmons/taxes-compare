@@ -9,13 +9,17 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: {{ .Values.domain }}
-    http:
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: "{{ .Release.Name }}"
-              port:
-                number: {{ .Values.port }}
+    - host: {{ .Values.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "{{ .Release.Name }}"
+                port:
+                  number: {{ .Values.port }}
+  tls:
+    - hosts:
+        - "{{ .Values.domain }}"
+      secretName: "taxes-tls-secret"
