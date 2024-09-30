@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 interface CurrencyFormProps {
-  onSelectCurrency: (currency: string) => void;
+  onSelectCurrency: (currency: string | null) => void;
   currency: string | null;
 }
 
@@ -32,7 +32,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
   }, [currency]);
 
   const handleCurrencyChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCurrency = event.target.value;
+    const newCurrency = event.target.value === "Local Currency" ? null : event.target.value;
     setSelectedCurrency(newCurrency);
     onSelectCurrency(newCurrency);
   };
@@ -66,4 +66,3 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
 };
 
 export default CurrencyForm;
-
