@@ -3,7 +3,7 @@ replicaCount: 1
 domain: localhost:3000
 protocol: http
 nginx_port: 8081
-image: simmonsd99/taxes-compare:taxes-compare-webserver-1.0.1
+image: simmonsd99/taxes-compare:taxes-compare-webserver-1.0.2
 cpu: "100m"
 memory: "256Mi"
 namespace: taxes-compare
