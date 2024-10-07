@@ -1,10 +1,14 @@
 # Compare effective tax rates between countries
 
-The easiest way to understand personal income tax is see the whole curve. Average tax rates obscure important information. Similarly, marginal tax rates tables can also be misleading.
+The easiest way to understand personal income tax is to see the whole curve. 
+
+Average tax rates obscure important information.
+
+Similarly, marginal tax rates tables can also be misleading.
 
 This application gives the full picture on tax, all derived from the marginal rates of several countries.
 
-Details on the solution [here](/server/methodology.md).
+Details on the solution are [here](/server/methodology.md).
 
 ### Features
 

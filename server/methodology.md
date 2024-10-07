@@ -1,6 +1,8 @@
 ### Methodology (high level)
 
-The easiest way to understand a country's taxation settings is to visualise its policy as a curve. This document shows how to do that.
+The easiest way to understand a country's taxation settings is to visualise its policy as a curve. Implementing this involves several steps.
+
+For the best experience when viewing sections with LaTeX equations, please clone this repo locally and render with a markdown viewer that supports LaTeX.
 
 ##### Parsing
 
