@@ -34,7 +34,7 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
       <div className="form-group">
         <label className="label-text-custom" htmlFor="income">
           Income: (optional)
-          <span className="info-icon" data-tooltip="Add specific income to analyze">
+          <span className="info-icon" data-tooltip="Add specific income to analyse">
             <FontAwesomeIcon icon={faInfoCircle} />
           </span>
           {incomeInfoVisible && (
@@ -55,7 +55,7 @@ const GlobalOptionsForm: React.FC<GlobalOptionsFormProps> = ({
 
       <div className="form-group">
         <label className="label-text-custom" htmlFor="max_income">
-          Maximum Income to consider: (scale)
+          Maximum Income to consider:
           <span className="info-icon" data-tooltip="Set the max value for the x axis.">
             <FontAwesomeIcon icon={faInfoCircle} />
           </span>

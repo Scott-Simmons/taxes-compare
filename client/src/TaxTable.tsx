@@ -46,7 +46,7 @@ const TaxData: React.FC<TaxDataProps> = ({ data }) => {
                           const to = bracket.income_limit !== null ? bracket.income_limit : '∞';
                           return (
                             <tr key={index}>
-                              <td>{(+bracket.marginal_rate.toFixed(5)*100).toFixed(0)}</td>
+                              <td>{(+bracket.marginal_rate.toFixed(5)*100).toFixed(2)}</td>
                               <td>{from}</td>
                               <td>{to}</td>
                             </tr>
