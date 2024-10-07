@@ -1,7 +1,0 @@
----
-replicaCount: 1
-domain: <app-parent-domain>
-port: <port>
-image: <path-to-image>
-cpu: <cpu>
-memory: <memory>

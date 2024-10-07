@@ -24,9 +24,10 @@ spec:
     spec:
       containers:
         - image: "{{ .Values.image }}"
+          imagePullPolicy: Always
           name: "{{ .Release.Name }}"
           ports:
-            - containerPort: {{ .Values.port }}
+            - containerPort: {{ .Values.server_port }}
           resources:
             limits:
               cpu: "{{ .Values.cpu }}"
@@ -35,5 +36,5 @@ spec:
               cpu: "{{ .Values.cpu }}"
               memory: "{{ .Values.memory }}"
           env:
-            - name: PORT
-              value: "{{ .Values.port }}"
+            - name: SERVER_PORT
+              value: "{{ .Values.server_port }}"

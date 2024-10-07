@@ -1,8 +1,8 @@
 ---
 replicaCount: 1
-domain: localhost:3000
-protocol: http
-nginx_port: 8081
+domain: taxes-compare.com
+protocol: https
+nginx_port: 443
 image: simmonsd99/taxes-compare:taxes-compare-webserver-1.0.1
 cpu: "100m"
 memory: "256Mi"

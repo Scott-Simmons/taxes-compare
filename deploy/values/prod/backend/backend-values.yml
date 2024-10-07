@@ -1,7 +1,7 @@
 ---
 replicaCount: 1
-domain: localhost
-protocol: http
+domain: taxes-compare.com
+protocol: https
 server_port: 3000
 image: simmonsd99/taxes-compare:taxes-compare-1.0.0
 cpu: "250m"
