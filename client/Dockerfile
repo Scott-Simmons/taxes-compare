@@ -4,11 +4,6 @@ WORKDIR /app
 
 ENV PATH /app/node_modules/.bin:$PATH
 
-# Defaults, overwritten in kube manifests
-ENV HOST="localhost"
-ENV PROTOCOL="http"
-ENV PORT="8080"
-
 COPY package.json package-lock.json ./
 RUN NODE_ENV=production npm ci
 
@@ -19,6 +14,12 @@ COPY tsconfig.json tsconfig.json
 RUN npm run build
 
 FROM nginx:1.22.0-alpine
-COPY ./etc/nginx/nginx.conf /etc/nginx/nginx.conf
+
 COPY --from=build /app/build/ /usr/share/nginx/html
-CMD ["nginx", "-g", "daemon off;"]
+COPY public/config.js /usr/share/nginx/html/config.js
+COPY ./etc/nginx/nginx.conf.template /etc/nginx/nginx.conf.template
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

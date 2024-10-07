@@ -15,14 +15,12 @@ import BreakevenData from './BreakevenTable';
 import { BackEndResponse } from './types';
 import { useCallback } from 'react'
 
-const REACT_APP_API_URL: string = `${process.env.PROTOCOL || "http"}://${process.env.HOST || "localhost"}:${process.env.BACKEND_PORT || 3000}`;
+const BACKEND_API_URL: string = `${window._env_.REACT_APP_BACKEND_PROTOCOL}://${window._env_.REACT_APP_BACKEND_HOST}`;
 
 const App: React.FC = () => {
 
-  // Constants
   const max_allowable_income: number = 100e6;
 
-  // State
   const [loading, setLoading] = useState(false);
   const [incomeError, setIncomeError] = useState<string | null>(null);
   const [maxIncomeError, setMaxIncomeError] = useState<string | null>(null);
@@ -38,7 +36,6 @@ const App: React.FC = () => {
   const [currency, setCurrency] = useState<string | null>(null);
 
 
-  // Handlers
   const handleAddCountry = (country: string) => {
     setCountries((prev) => {
       const updatedCountries = [...prev, country];
@@ -61,7 +58,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleSelectCurrency = (newCurrency: string) => {
+  const handleSelectCurrency = (newCurrency: string | null) => {
     setCurrency(newCurrency);
   };
 
@@ -132,7 +129,7 @@ const App: React.FC = () => {
       normalizing_currency: currency
     };
 
-    const hostname: string = REACT_APP_API_URL;
+    const hostname: string = BACKEND_API_URL;
     if (!hostname) {
       return
     }
@@ -147,7 +144,7 @@ const App: React.FC = () => {
       }});
       setresponseData(responseData.data);
       } catch {
-        throw new Error("Issue with request")
+        throw new Error(`Issue with request: ${backendEndpoint}, ${JSON.stringify(requestData)}`)
     } finally {
       setLoading(false)
     }
@@ -171,7 +168,6 @@ const App: React.FC = () => {
   }, [handleCompute]);
 
 
-  // Rendering
   return (
     <div className="App">
         <Header />
@@ -233,7 +229,7 @@ const App: React.FC = () => {
       <div id="exchangeratetables">
        {responseData && (
         <div style={{ marginTop: '10px' }}>
-          <ExchangeRateData data={responseData} currency={currency}/>
+          <ExchangeRateData data={responseData}/>
         </div>
         ) 
         }
