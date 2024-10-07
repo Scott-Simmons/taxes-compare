@@ -2,55 +2,26 @@
   "name": "taxes-frontend",
   "version": "0.1.0",
   "private": true,
-  "resolutions": {
-    "@types/react": "18.2.0",
-    "@types/react-dom": "18.2.0"
-  },
   "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@fortawesome/fontawesome-svg-core": "^6.5.1",
-    "@fortawesome/free-solid-svg-icons": "^6.5.1",
-    "@fortawesome/react-fontawesome": "^0.2.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/react": "^18.0.12",
-    "axios": "^1.6.3",
-    "dotenv": "^16.3.1",
-    "fs": "^0.0.1-security",
-    "i": "^0.3.7",
-    "loose-envify": "^1.4.0",
-    "npm": "^10.8.3",
-    "npm-force-resolutions": "^0.0.10",
-    "plotly": "^1.0.6",
-    "plotly.js": "^2.35.2",
-    "plotly.js-basic-dist": "^2.35.2",
-    "prop-types": "^15.8.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "@types/react-router": "^5.1.20",
+    "axios": "^1.7.7",
+    "plotly.js": "^1.47.4",
+    "react-dom": "^18.3.1",
     "react-plotly.js": "^2.6.0",
     "react-scripts": "^5.0.1",
-    "react-select": "^5.4.0",
-    "react-spinners": "^0.13.8",
-    "react-switch": "^7.0.0",
-    "react-tooltip": "^5.25.1",
-    "recharts": "^2.12.7",
-    "ts-dotenv": "^0.9.1",
-    "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+    "react-spinners": "^0.14.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "preinstall": "npx npm-force-resolutions"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {
@@ -66,9 +37,14 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "^20.10.7",
-    "@types/react": "18.2.25",
-    "@types/react-dom": "18.3.0",
-    "@types/react-plotly.js": "^2.6.3"
+    "@types/plotly.js": "^2.33.4",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-plotly.js": "^2.6.3",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.1",
+    "globals": "^15.10.0",
+    "lint": "^0.8.19",
+    "typescript-eslint": "^8.8.0"
   }
 }
