@@ -10,8 +10,8 @@ metadata:
 spec:
   ports:
     - name: nginx
-      port: {{ .Values.port }}
-      targetPort: {{ .Values.port }}
+      port: {{ .Values.nginx_port }}
+      targetPort: {{ .Values.nginx_port }}
       protocol: TCP
   type: LoadBalancer
   selector:

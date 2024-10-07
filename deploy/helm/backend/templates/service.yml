@@ -10,8 +10,8 @@ metadata:
 spec:
   ports:
     - name: backend-port
-      port: {{ .Values.port }}
-      targetPort: {{ .Values.port }}
+      port: {{ .Values.server_port }}
+      targetPort: {{ .Values.server_port }}
       protocol: TCP
   type: LoadBalancer
   selector:

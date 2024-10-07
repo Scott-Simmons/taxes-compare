@@ -13,14 +13,15 @@ spec:
     - host: {{ .Values.domain }}
       http:
         paths:
-          - path: /
+          - path: /process
             pathType: Prefix
             backend:
               service:
                 name: "{{ .Release.Name }}"
                 port:
-                  number: {{ .Values.nginx_port }}
+                  number: {{ .Values.server_port }}
   tls:
     - hosts:
         - "{{ .Values.domain }}"
       secretName: "taxes-tls-secret"
+
