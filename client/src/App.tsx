@@ -77,7 +77,7 @@ const App: React.FC = () => {
     }
 
     if (updatedOptions.max_income === undefined || updatedOptions.max_income === 0) {
-      setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) gives the size of the x axis and must be greater than 0 (reccomended to set to something between 100k - 1 mil)`)
+      setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) must be greater than 0`)
     }
 
     const max_income_num: number = +updatedOptions.max_income;

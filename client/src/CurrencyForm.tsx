@@ -37,7 +37,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
     onSelectCurrency(newCurrency);
   };
 
-  const tooltipText: string = "Select your currency."
+  const tooltipText: string = "Adjust countries to a common currency for fair comparisons. 'Local currency' means no adjustment."
 
   return (
     <div className="form-container">
