@@ -7,7 +7,6 @@ use taxes_compare::controller::taxes_config::TaxesConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    print!("Binding to port: {}", &env::var("PORT").unwrap_or_else(|_| String::from("3000")));
     env_logger::init();
     let taxes_config = TaxesConfig::new(
         &env::var("TAXES_CONFIG_PATH").unwrap_or_else(|_| String::from("./assets/taxes.json")),
@@ -20,7 +19,7 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(format!(
         "0.0.0.0:{}",
-        &env::var("PORT").unwrap_or_else(|_| String::from("3000"))
+        &env::var("SERVER_PORT").unwrap_or_else(|_| String::from("6000"))
     ))?
     .run()
     .await

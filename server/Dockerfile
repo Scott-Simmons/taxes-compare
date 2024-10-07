@@ -32,7 +32,7 @@ ARG WORKDIR="/app"
 ARG MODE_DIR="debug"
 ARG TARGET="x86_64-unknown-linux-musl"
 ENV TAXES_CONFIG_PATH="/app/taxes.json"
-ENV PORT="3000"
+ENV SERVER_PORT="3000"
 COPY --from=build ${WORKDIR}/target/${TARGET}/${MODE_DIR}/taxes-compare ${WORKDIR}/taxes-compare
 COPY --from=build ${WORKDIR}/assets/taxes.json ${TAXES_CONFIG_PATH}
 CMD ["/app/taxes-compare"]

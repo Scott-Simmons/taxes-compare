@@ -2,10 +2,10 @@ BINARY_NAME := taxes-compare
 IMAGE_NAME := taxes-compare
 APP_NAME := taxes-compare
 USERNAME := simmonsd99
-VERSION := 0.0.3
+VERSION := $(shell cat VERSION)
+SERVER_PORT := 3001
 
-build:
-	docker build . -t $(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)
+local: build-local run-local
 
 DRY_RUN ?= false
 build-local:
@@ -17,26 +17,33 @@ build-local:
 						 cargo build; \
 		 fi
 
-run-local:
-	cargo run
-
-#BACKTRACE_CMD ?= RUST_BACKTRACE=full
+# can also do `cargo run`
 BACKTRACE_CMD ?= RUST_LOG=DEBUG
-local-run:
-	$(BACKTRACE_CMD) ./target/debug/$(BINARY_NAME)
+run-local:
+	SERVER_PORT=$(SERVER_PORT) $(BACKTRACE_CMD) ./target/debug/$(BINARY_NAME)
 
 lint:
 	cargo fmt
 
-#https://medium.com/@ericdreichert/how-to-print-during-rust-tests-619bdc7ccebc
-local-test:
-	cargo test -- --nocapture
-
-run:
-	docker run --rm -p 3000:3000 $(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)
-
 clean:
 	cargo clean
 
-publish: build
-	docker push $(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)
+test-local:
+	cargo test -- --nocapture
+
+docker: build-docker run-docker
+run-docker:
+	docker run \
+		--rm \
+		-p $(SERVER_PORT):$(SERVER_PORT) \
+		-e SERVER_PORT=$(SERVER_PORT) \
+		$(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)
+
+publish-docker:
+	docker push \
+		$(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION)
+
+build-docker:
+	docker build \
+		-t $(USERNAME)/$(APP_NAME):$(IMAGE_NAME)-$(VERSION) \
+		.
