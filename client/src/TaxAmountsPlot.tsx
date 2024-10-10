@@ -129,7 +129,7 @@ const TaxAmountsPlot: React.FC<TaxAmountsPlotProps> = ({ data }) => {
         data={plotData}
         layout={{
           title: {
-            text: `<b>Taxation Amount</b> (%)<br>(in ${currency || "local currency"})`,
+            text: `<b>Taxation Amount</b><br>(in ${currency || "local currency"})`,
             x: 0.5,
             xanchor: 'center',
           },
