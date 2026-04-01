@@ -1,38 +1,37 @@
-# Bugs Found in taxes_compare (Server)
+# Bugs Found in taxes_compare
+
+All previously identified bugs have been fixed.
 
 ## Fixed
 
-### 1. `null_to_infinity` Deserializer Did Not Convert Null to Infinity
-**File:** `src/core/points/marginal_rate_knot.rs`
+### Server
 
-Deserializing `Option<serde_json::Value>` caused JSON `null` to become `None` instead of `Some(f32::INFINITY)`, because serde's `Option` deserialization treats null as `None`. Fixed by deserializing into `serde_json::Value` directly.
+1. **`null_to_infinity` deserializer was dead code** (`src/core/points/marginal_rate_knot.rs`) - JSON `null` became `None` instead of `Some(f32::INFINITY)`. Fixed by deserializing into `Value` directly.
 
-**Status:** Fixed
+2. **`eprint!` instead of `log::error!`** (`src/controller/handle_request.rs`) - Errors bypassed the logging framework.
 
----
+3. **Server panic on exchange rate API failure** (`src/exchange_rates.rs`, `src/controller/taxes_config.rs`) - `.unwrap()` on API fetch and JSON parse. Replaced with proper error propagation.
 
-### 2. `eprint!` Used Instead of `log::error!`
-**File:** `src/controller/handle_request.rs`
+4. **Spain tax data was savings tax, not income tax** (`assets/taxes.json`) - Rates (19/21/23/27/28%) were rentas del ahorro. Replaced with IRPF brackets (19/24/30/37/45/47%).
 
-Error handler used `eprint!` instead of `log::error!`, bypassing the log framework.
+5. **Norway missing bracket tax** (`assets/taxes.json`) - Only had 22% flat rate, missing trinnskatt (1.7%-17.6% at higher incomes).
 
-**Status:** Fixed
+6. **Methodology formula had b/t swapped** (`methodology.md`) - Piecewise linear interpolation formula computed the inverse function. Code was correct.
 
----
+### Client
 
-### 3. Server Panic on Exchange Rate API Failure
-**File:** `src/controller/taxes_config.rs`, `src/exchange_rates.rs`
+7. **IncomeTable scale factor error** (`src/IncomeTable.tsx`) - Effective tax rate displayed as decimal (0.15) instead of percentage (15.00) under "Taxation %" column.
 
-`.unwrap()` on the exchange rate fetch and JSON parse would panic and crash the server if the external API was unreachable or returned unexpected data. Replaced with proper error propagation.
+8. **BreakevenTable null currency** (`src/BreakevenTable.tsx`) - Hide button and column headers rendered "null" when no currency was selected.
 
-**Status:** Fixed
+9. **Validation always overridden** (`src/App.tsx`) - `setGlobalOptions()` ran unconditionally after validation, saving invalid values to state.
 
----
+10. **Error swallowed in handleCompute** (`src/App.tsx`) - Catch block re-threw error with no user feedback. Replaced with alert.
+
+11. **`isDollarActive` naming inverted** (`src/PlotComp.tsx`) - `true` showed percentage view, not dollar view. Renamed to `isRatesView`.
 
 ## Previously Reported - False Positives (Removed)
 
-- **"Missing First Knot Point"** - The production `taxes.json` format (first bracket at income_limit > 0) is correct for the algorithm. The algorithm uses implicit `(b_0=0, r_0=0)` as the base. Adding a knot at `income_limit=0` would double-count the first bracket's contribution.
-
-- **"Improper Response Construction"** - `HttpResponse` implements `Responder` in actix-web. Returning `res` directly is valid.
-
-- **"Potential Memory Leak in Parallel Processing"** - Rayon's parallel iterators handle memory correctly. No leak.
+- **"Missing First Knot Point"** - The production `taxes.json` format is correct. The algorithm uses implicit `(b_0=0, r_0=0)` as the base.
+- **"Improper Response Construction"** - `HttpResponse` implements `Responder` in actix-web.
+- **"Potential Memory Leak in Parallel Processing"** - Rayon handles memory correctly.
