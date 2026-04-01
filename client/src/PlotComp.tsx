@@ -11,7 +11,7 @@ interface PlotSwitcherProps {
 }
 
 const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data }) => {
-  const [isDollarActive, setIsDollarActive] = useState(true);
+  const [isRatesView, setIsDollarActive] = useState(true);
 
   const toggleSwitch = () => {
     setIsDollarActive((prev) => !prev);
@@ -28,7 +28,7 @@ const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data }) => {
     <div>
       <div className="switch-container" style={switchContainerStyle}>
         <button
-          className={`switch-button ${isDollarActive ? "left active" : "right active"
+          className={`switch-button ${isRatesView ? "left active" : "right active"
           }`}
           onClick={toggleSwitch}
         >
@@ -37,7 +37,7 @@ const PlotSwitcher: React.FC<PlotSwitcherProps> = ({ data }) => {
         </button>
       </div>
       <div className="plot-container">
-        {isDollarActive ? (<TaxRatesPlot data={data}/>) : (<TaxAmountsPlot data={data}/>)}
+        {isRatesView ? (<TaxRatesPlot data={data}/>) : (<TaxAmountsPlot data={data}/>)}
       </div>
     </div>
   );

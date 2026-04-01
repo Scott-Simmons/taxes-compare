@@ -31,7 +31,7 @@ pub async fn handle_request(
             HttpResponse::Ok().json(response)
         }
         Err(e) => {
-            eprint!("Error processing request: {:?}", e);
+            log::error!("Error processing request: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     };

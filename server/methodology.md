@@ -70,7 +70,7 @@ Another representation of a tax schedule can be obtained, in piecewise linear fo
 The income tax amount $g(x; \vec{\nu}, m)$ for a given level of income $x \in [0, m]$ given a tax amounts scheme $\vec{\nu} = \{(b_1,t_1),(b_2,t_2), ... (b_n, t_n)\}$ is computed by linear interpolation through the points $\{(b_{i-1}, t_{i-1}),(b_i, t_i)\}$ at $x$:
 
 $$g(x; \vec{\nu}, m) =
-b_{i-1} + \frac{b_{i} - b_{i-1}}{t_{i} - t_{i-1}} \cdot (x - t_{i-1}), \;\; t_{i-1} \leq x \leq t_{i}, \;\; i \in \{1, 2, \ldots, n \}
+t_{i-1} + \frac{t_{i} - t_{i-1}}{b_{i} - b_{i-1}} \cdot (x - b_{i-1}), \;\; b_{i-1} \leq x \leq b_{i}, \;\; i \in \{1, 2, \ldots, n \}
 $$
 
 $$ t_0 = 0, b_0 = 0 \;\;\forall\vec{\nu}$$

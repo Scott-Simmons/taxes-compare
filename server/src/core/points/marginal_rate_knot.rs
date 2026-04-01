@@ -15,14 +15,13 @@ fn null_to_infinity<'de, D>(deserializer: D) -> Result<Option<f32>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let option: Option<serde_json::Value> = Deserialize::deserialize(deserializer)?;
-    match option {
-        Some(serde_json::Value::Null) => Ok(Some(f32::INFINITY)),
-        Some(serde_json::Value::Number(num)) => num
+    let value: serde_json::Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        serde_json::Value::Null => Ok(Some(f32::INFINITY)),
+        serde_json::Value::Number(num) => num
             .as_f64()
             .map(|f| Some(f as f32))
             .ok_or_else(|| serde::de::Error::custom("Invalid number format")),
-        None => Ok(None),
         _ => Err(serde::de::Error::custom("Unexpected value")),
     }
 }
