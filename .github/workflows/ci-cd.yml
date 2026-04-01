@@ -1,0 +1,96 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_image: ${{ steps.meta.outputs.backend_image }}
+      frontend_image: ${{ steps.meta.outputs.frontend_image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tags
+        id: meta
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "backend_image=simmonsd99/taxes-compare:taxes-compare-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=simmonsd99/taxes-compare:taxes-compare-webserver-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta.outputs.backend_image }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: ${{ steps.meta.outputs.frontend_image }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy deploy files to VPS
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            deploy/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/taxes-deploy/"
+
+      - name: Deploy via Helm
+        env:
+          BACKEND_IMAGE: ${{ needs.build-and-push.outputs.backend_image }}
+          FRONTEND_IMAGE: ${{ needs.build-and-push.outputs.frontend_image }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" bash -s << ENDSSH
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+            helm upgrade --install backend-release \
+              /tmp/taxes-deploy/helm/backend/ \
+              -f /tmp/taxes-deploy/values/prod/backend/backend-values.yml \
+              --set image=${BACKEND_IMAGE} \
+              --namespace taxes-compare \
+              --wait --timeout 120s
+
+            helm upgrade --install frontend-release \
+              /tmp/taxes-deploy/helm/browser/ \
+              -f /tmp/taxes-deploy/values/prod/browser/browser-values.yml \
+              --set image=${FRONTEND_IMAGE} \
+              --namespace taxes-compare \
+              --wait --timeout 120s
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" bash -s << 'ENDSSH'
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            echo "--- Pod status ---"
+            kubectl get pods -n taxes-compare
+            echo "--- Rollout status ---"
+            kubectl rollout status deployment/backend-release -n taxes-compare --timeout=60s
+            kubectl rollout status deployment/frontend-release -n taxes-compare --timeout=60s
+          ENDSSH
