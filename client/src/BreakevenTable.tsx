@@ -50,7 +50,7 @@ const BreakevenData: React.FC<BreakevenProps> = ({ data, currency }) => {
   return (
     <div>
       <button onClick={toggleFold}>
-        {isFolded ? `Show breakeven incomes for country combinations (${currency || "Local Currency"})` : `Hide breakeven points for country combinations ${currency}`}
+        {isFolded ? `Show breakeven incomes for country combinations (${currency || "Local Currency"})` : `Hide breakeven points for country combinations (${currency || "Local Currency"})`}
       </button>
 
       {!isFolded && (
@@ -63,9 +63,9 @@ const BreakevenData: React.FC<BreakevenProps> = ({ data, currency }) => {
               <tr>
                 <th>Country 1</th>
                 <th>Country 2</th>
-                <th>Income where taxes are equal between countries ({currency})</th>
+                <th>Income where taxes are equal between countries ({currency || "Local Currency"})</th>
                 <th>Taxation %</th>
-                <th>Taxation Amount ({currency})</th>
+                <th>Taxation Amount ({currency || "Local Currency"})</th>
               </tr>
             </thead>
             <tbody>

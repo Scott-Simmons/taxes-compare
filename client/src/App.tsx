@@ -66,27 +66,30 @@ const App: React.FC = () => {
 
     const updatedOptions = { ...globalOptions, ...options };
 
-    if (updatedOptions.income !== undefined && (updatedOptions.income === null || updatedOptions.income <= updatedOptions.max_income)) {
-      setGlobalOptions(updatedOptions);
-      setIncomeError(null);
-      setMaxIncomeError(null)
-    } else {
+    let hasError = false;
+
+    if (updatedOptions.income !== undefined && updatedOptions.income !== null && updatedOptions.income > updatedOptions.max_income) {
       setIncomeError(
         `Income (currently set to: ${updatedOptions.income}) must be less than the maximum income (currently set to ${updatedOptions.max_income})`
       );
+      hasError = true;
+    } else {
+      setIncomeError(null);
     }
 
     if (updatedOptions.max_income === undefined || updatedOptions.max_income === 0) {
-      setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) must be greater than 0`)
+      setMaxIncomeError(`Max income (currently set to: ${updatedOptions.max_income}) must be greater than 0`);
+      hasError = true;
+    } else if (+updatedOptions.max_income > max_allowable_income) {
+      setMaxIncomeError(`Max income (currently set to: ${+updatedOptions.max_income}) is too large. Must be less than ${max_allowable_income})`);
+      hasError = true;
+    } else {
+      setMaxIncomeError(null);
     }
 
-    const max_income_num: number = +updatedOptions.max_income;
-
-    if (max_income_num > max_allowable_income) {
-      setMaxIncomeError(`Max income (currently set to: ${max_income_num}) is too large. Must be less than ${max_allowable_income})`)
+    if (!hasError) {
+      setGlobalOptions(updatedOptions);
     }
-
-    setGlobalOptions(updatedOptions);
 
   };
 
@@ -143,8 +146,9 @@ const App: React.FC = () => {
           'Content-Type': 'application/json'
       }});
       setresponseData(responseData.data);
-      } catch {
-        throw new Error(`Issue with request: ${backendEndpoint}, ${JSON.stringify(requestData)}`)
+      } catch (error) {
+        alert(`Failed to fetch tax data. Please try again.`);
+        console.error(`Issue with request: ${backendEndpoint}, ${JSON.stringify(requestData)}`, error);
     } finally {
       setLoading(false)
     }

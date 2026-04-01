@@ -42,7 +42,7 @@ const IncomeData: React.FC<IncomeDataProps> = ({ data, income, currency }) => {
       <td>{entry.country}</td>
       <td>{entry.rank}</td>
       {/*Never will be null if income is null, but need these checks to keep TS happy*/}
-      <td>{entry.taxInfo.specific_tax_rate?.toFixed(2)}</td>
+      <td>{entry.taxInfo.specific_tax_rate != null ? (entry.taxInfo.specific_tax_rate * 100).toFixed(2) : null}</td>
       <td>{entry.taxInfo.specific_tax_amount?.toFixed(0)}</td>
       <td>{(income - (entry.taxInfo.specific_tax_amount || 0.0)).toFixed(0)}</td>
     </tr>
