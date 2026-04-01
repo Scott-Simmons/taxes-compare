@@ -45,7 +45,12 @@
         },
         "Norway": {
             "schedule" : [
-                {"marginal_rate": 0.22,  "income_limit": null}
+                {"marginal_rate": 0.22,  "income_limit": 208050},
+                {"marginal_rate": 0.237, "income_limit": 292850},
+                {"marginal_rate": 0.26, "income_limit": 670000},
+                {"marginal_rate": 0.356, "income_limit": 937900},
+                {"marginal_rate": 0.386, "income_limit": 1350000},
+                {"marginal_rate": 0.396, "income_limit": null}
             ]
         },
         "South Africa": {
@@ -74,11 +79,12 @@
         },
         "Spain": {
             "schedule" : [
-                {"marginal_rate": 0.19,  "income_limit": 6000},
-                {"marginal_rate": 0.21, "income_limit": 50000},
-                {"marginal_rate": 0.23, "income_limit": 200000},
-                {"marginal_rate": 0.27, "income_limit": 300000},
-                {"marginal_rate": 0.28, "income_limit": null}
+                {"marginal_rate": 0.19,  "income_limit": 12450},
+                {"marginal_rate": 0.24, "income_limit": 20200},
+                {"marginal_rate": 0.30, "income_limit": 35200},
+                {"marginal_rate": 0.37, "income_limit": 60000},
+                {"marginal_rate": 0.45, "income_limit": 300000},
+                {"marginal_rate": 0.47, "income_limit": null}
             ]
         },
         "United States of America (excl. state taxes)": {
