@@ -142,7 +142,13 @@ impl TaxesConfig {
         let incomes_to_compute = generate_range(min_income, req.max_income, step);
         let country_currency_mapping = get_currency_country_mapping();
         let exchange_rates_config = match &req.normalizing_currency {
-            Some(currency) => Some(fetch_exchange_rates(&currency).await.unwrap()),
+            Some(currency) => match fetch_exchange_rates(&currency).await {
+                Ok(rates) => Some(rates),
+                Err(e) => {
+                    log::error!("Failed to fetch exchange rates for {}: {}", currency, e);
+                    return Err(format!("Failed to fetch exchange rates: {}", e));
+                }
+            },
             None => None,
         };
         let country_specific_data: HashMap<String, TaxData> = req

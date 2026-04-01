@@ -27,7 +27,8 @@ pub async fn fetch_exchange_rates(
     // TODO: More error checking
     let endpoint = format!("https://open.er-api.com/v6/latest/{}", base_currency);
     let resp = reqwest::get(&endpoint).await?.text().await?;
-    let rates: ExchangeRatesResponse = serde_json::from_str(&resp).unwrap();
+    let rates: ExchangeRatesResponse = serde_json::from_str(&resp)
+        .map_err(|e| -> Box<dyn Error> { format!("Failed to parse exchange rate response: {}", e).into() })?;
     Ok(rates.rates)
 }
 
